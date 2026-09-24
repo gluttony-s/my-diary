@@ -22,12 +22,34 @@ body {
   gap: 12px;
 }
 
+/* Панель бэкапа */
+.backup-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.backup-btn {
+  flex: 1;
+  background: #27272a;
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.backup-btn:active {
+  background: #3f3f46;
+}
+
 /* Шапка */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .header button {
