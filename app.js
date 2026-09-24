@@ -1,13 +1,28 @@
-// Память
-let notes = JSON.parse(localStorage.getItem('my_simple_diary')) || {};
+// Безопасное чтение из памати (чтобы Brave не блокировал скрипт)
+function loadStorage() {
+  try {
+    return JSON.parse(localStorage.getItem('my_simple_diary')) || {};
+  } catch (e) {
+    console.warn('LocalStorage заблокирован защитой браузера');
+    return {};
+  }
+}
 
+function saveStorage(data) {
+  try {
+    localStorage.setItem('my_simple_diary', JSON.stringify(data));
+  } catch (e) {
+    console.warn('Не удалось сохранить данные в LocalStorage');
+  }
+}
+
+let notes = loadStorage();
 let viewDate = new Date();
 let selectedDateKey = getFormattedKey(new Date());
 let selectedMood = '';
 
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-// Элементы
 const monthTitle = document.getElementById('month-title');
 const calendarDays = document.getElementById('calendar-days');
 const selectedDateText = document.getElementById('selected-date-text');
@@ -22,7 +37,6 @@ function getFormattedKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-// Отрисовка календаря
 function renderCalendar() {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -31,18 +45,16 @@ function renderCalendar() {
   calendarDays.innerHTML = '';
 
   let firstDay = new Date(year, month, 1).getDay();
-  firstDay = firstDay === 0 ? 6 : firstDay - 1; // Коррекция недели (Пн-Вс)
+  firstDay = firstDay === 0 ? 6 : firstDay - 1;
 
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  // Пустые ячейки
   for (let i = 0; i < firstDay; i++) {
     const empty = document.createElement('div');
     empty.className = 'day empty';
     calendarDays.appendChild(empty);
   }
 
-  // Дни
   for (let day = 1; day <= totalDays; day++) {
     const dateObj = new Date(year, month, day);
     const key = getFormattedKey(dateObj);
@@ -61,7 +73,6 @@ function renderCalendar() {
   }
 }
 
-// Выбор даты
 function selectDate(key, dateObj) {
   selectedDateKey = key;
   selectedDateText.textContent = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
@@ -74,7 +85,6 @@ function selectDate(key, dateObj) {
   renderCalendar();
 }
 
-// Выбор настроения
 function setMood(mood) {
   selectedMood = mood;
   moodBtns.forEach(btn => {
@@ -87,7 +97,6 @@ moodBtns.forEach(btn => {
   btn.onclick = () => setMood(btn.dataset.mood === selectedMood ? '' : btn.dataset.mood);
 });
 
-// Сохранение
 function save() {
   const title = noteTitle.value.trim();
   const content = noteContent.value.trim();
@@ -98,14 +107,13 @@ function save() {
     notes[selectedDateKey] = { title, content, mood: selectedMood };
   }
 
-  localStorage.setItem('my_simple_diary', JSON.stringify(notes));
+  saveStorage(notes);
   renderCalendar();
 }
 
 noteTitle.oninput = save;
 noteContent.oninput = save;
 
-// Переключение месяцев
 document.getElementById('prev-month').onclick = () => {
   viewDate.setMonth(viewDate.getMonth() - 1);
   renderCalendar();
@@ -116,5 +124,4 @@ document.getElementById('next-month').onclick = () => {
   renderCalendar();
 };
 
-// Старт
 selectDate(selectedDateKey, new Date());
