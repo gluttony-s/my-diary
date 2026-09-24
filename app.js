@@ -1,196 +1,120 @@
-// База данных в LocalStorage (ключ — дата формата YYYY-MM-DD)
-let diaryData = JSON.parse(localStorage.getItem('my_book_diary')) || {};
+// Память
+let notes = JSON.parse(localStorage.getItem('my_simple_diary')) || {};
 
-// Текущее состояние
-let currentDate = new Date();
-let currentSelectedDateKey = formatDateKey(new Date());
-let selectedMood = '😊';
+let viewDate = new Date();
+let selectedDateKey = getFormattedKey(new Date());
+let selectedMood = '';
 
-// Месяцы для шапки
-const monthNames = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-];
+const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-// Элементы UI
-const calendarScreen = document.getElementById('calendar-screen');
-const bookScreen = document.getElementById('book-screen');
-const viewCalendarBtn = document.getElementById('view-calendar-btn');
-const viewBookBtn = document.getElementById('view-book-btn');
-
+// Элементы
+const monthTitle = document.getElementById('month-title');
 const calendarDays = document.getElementById('calendar-days');
-const currentMonthLabel = document.getElementById('current-month-label');
+const selectedDateText = document.getElementById('selected-date-text');
+const noteTitle = document.getElementById('note-title');
+const noteContent = document.getElementById('note-content');
+const moodBtns = document.querySelectorAll('.mood-btn');
 
-const pageCard = document.getElementById('page-card');
-const entryDateBadge = document.getElementById('entry-date');
-const titleInput = document.getElementById('entry-title');
-const contentInput = document.getElementById('entry-content');
-
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДАТЫ ---
-function formatDateKey(date) {
+function getFormattedKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function formatDateDisplay(dateKey) {
-  const [y, m, d] = dateKey.split('-');
-  const dateObj = new Date(y, m - 1, d);
-  return dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-// --- РЕНДЕР КАЛЕНДАРЯ ---
+// Отрисовка календаря
 function renderCalendar() {
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
 
-  currentMonthLabel.textContent = `${monthNames[month]} ${year}`;
+  monthTitle.textContent = `${monthNames[month]} ${year}`;
   calendarDays.innerHTML = '';
 
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  // Приводим воскресенье (0) к евро-стандарту (7)
-  const shift = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+  let firstDay = new Date(year, month, 1).getDay();
+  firstDay = firstDay === 0 ? 6 : firstDay - 1; // Коррекция недели (Пн-Вс)
 
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayKey = formatDateKey(new Date());
+  const totalDays = new Date(year, month + 1, 0).getDate();
 
-  // Пустые ячейки в начале
-  for (let i = 0; i < shift; i++) {
-    const emptyCell = document.createElement('div');
-    emptyCell.className = 'day-cell empty';
-    calendarDays.appendChild(emptyCell);
+  // Пустые ячейки
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day empty';
+    calendarDays.appendChild(empty);
   }
 
-  // Заполнение дней
-  for (let day = 1; day <= daysInMonth; day++) {
+  // Дни
+  for (let day = 1; day <= totalDays; day++) {
     const dateObj = new Date(year, month, day);
-    const dateKey = formatDateKey(dateObj);
-    const entry = diaryData[dateKey];
+    const key = getFormattedKey(dateObj);
 
-    const dayCell = document.createElement('div');
-    dayCell.className = 'day-cell';
-    if (dateKey === todayKey) dayCell.classList.add('today');
-    if (entry) dayCell.classList.add('has-entry');
+    const dayEl = document.createElement('div');
+    dayEl.className = 'day';
+    dayEl.textContent = day;
 
-    dayCell.innerHTML = `<span>${day}</span>`;
-    if (entry && entry.mood) {
-      dayCell.innerHTML += `<span class="mood-dot">${entry.mood}</span>`;
+    if (key === selectedDateKey) dayEl.classList.add('selected');
+    if (notes[key] && (notes[key].title || notes[key].content)) {
+      dayEl.classList.add('has-note');
     }
 
-    dayCell.onclick = () => {
-      currentSelectedDateKey = dateKey;
-      openPage(dateKey);
-      switchScreen('book');
-    };
-
-    calendarDays.appendChild(dayCell);
+    dayEl.onclick = () => selectDate(key, dateObj);
+    calendarDays.appendChild(dayEl);
   }
 }
 
-// --- ЛИСТАНИЕ И РЕДАКТИРОВАНИЕ СТРАНИЦ ---
-function openPage(dateKey) {
-  entryDateBadge.textContent = formatDateDisplay(dateKey);
-  const entry = diaryData[dateKey] || { title: '', content: '', mood: '😊' };
+// Выбор даты
+function selectDate(key, dateObj) {
+  selectedDateKey = key;
+  selectedDateText.textContent = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
-  titleInput.value = entry.title || '';
-  contentInput.value = entry.content || '';
-  setMood(entry.mood || '😊');
+  const note = notes[key] || { title: '', content: '', mood: '' };
+  noteTitle.value = note.title || '';
+  noteContent.value = note.content || '';
+  setMood(note.mood || '');
+
+  renderCalendar();
 }
 
+// Выбор настроения
 function setMood(mood) {
   selectedMood = mood;
-  document.querySelectorAll('.mood-btn').forEach(btn => {
+  moodBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mood === mood);
   });
-  saveCurrentPage();
+  save();
 }
 
-function saveCurrentPage() {
-  const title = titleInput.value.trim();
-  const content = contentInput.value.trim();
-
-  if (!title && !content) {
-    delete diaryData[currentSelectedDateKey];
-  } else {
-    diaryData[currentSelectedDateKey] = {
-      title: title,
-      content: content,
-      mood: selectedMood
-    };
-  }
-
-  localStorage.setItem('my_book_diary', JSON.stringify(diaryData));
-  renderCalendar();
-}
-
-titleInput.oninput = saveCurrentPage;
-contentInput.oninput = saveCurrentPage;
-
-document.querySelectorAll('.mood-btn').forEach(btn => {
-  btn.onclick = () => setMood(btn.dataset.mood);
+moodBtns.forEach(btn => {
+  btn.onclick = () => setMood(btn.dataset.mood === selectedMood ? '' : btn.dataset.mood);
 });
 
-// Анимация перелистывания (Вперед / Назад)
-function flipPage(direction) {
-  const [y, m, d] = currentSelectedDateKey.split('-').map(Number);
-  const dateObj = new Date(y, m - 1, d);
+// Сохранение
+function save() {
+  const title = noteTitle.value.trim();
+  const content = noteContent.value.trim();
 
-  if (direction === 'next') {
-    dateObj.setDate(dateObj.getDate() + 1);
-    pageCard.classList.add('flip-next');
+  if (!title && !content && !selectedMood) {
+    delete notes[selectedDateKey];
   } else {
-    dateObj.setDate(dateObj.getDate() - 1);
-    pageCard.classList.add('flip-prev');
+    notes[selectedDateKey] = { title, content, mood: selectedMood };
   }
 
-  setTimeout(() => {
-    currentSelectedDateKey = formatDateKey(dateObj);
-    openPage(currentSelectedDateKey);
-    pageCard.classList.remove('flip-next', 'flip-prev');
-  }, 200);
+  localStorage.setItem('my_simple_diary', JSON.stringify(notes));
+  renderCalendar();
 }
 
-document.getElementById('prev-day-btn').onclick = () => flipPage('prev');
-document.getElementById('next-day-btn').onclick = () => flipPage('next');
+noteTitle.oninput = save;
+noteContent.oninput = save;
 
-// Очистить страницу
-document.getElementById('delete-btn').onclick = () => {
-  delete diaryData[currentSelectedDateKey];
-  localStorage.setItem('my_book_diary', JSON.stringify(diaryData));
-  openPage(currentSelectedDateKey);
+// Переключение месяцев
+document.getElementById('prev-month').onclick = () => {
+  viewDate.setMonth(viewDate.getMonth() - 1);
   renderCalendar();
 };
 
-// Переключение месяцев в календаре
-document.getElementById('prev-month-btn').onclick = () => {
-  currentDate.setMonth(currentDate.getMonth() - 1);
+document.getElementById('next-month').onclick = () => {
+  viewDate.setMonth(viewDate.getMonth() + 1);
   renderCalendar();
 };
 
-document.getElementById('next-month-btn').onclick = () => {
-  currentDate.setMonth(currentDate.getMonth() + 1);
-  renderCalendar();
-};
-
-// --- ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ ---
-function switchScreen(screenName) {
-  if (screenName === 'calendar') {
-    calendarScreen.classList.add('active');
-    bookScreen.classList.remove('active');
-    viewCalendarBtn.classList.add('active');
-    viewBookBtn.classList.remove('active');
-  } else {
-    bookScreen.classList.add('active');
-    calendarScreen.classList.remove('active');
-    viewBookBtn.classList.add('active');
-    viewCalendarBtn.classList.remove('active');
-  }
-}
-
-viewCalendarBtn.onclick = () => switchScreen('calendar');
-viewBookBtn.onclick = () => switchScreen('book');
-
-// Инициализация
-renderCalendar();
-openPage(currentSelectedDateKey);
+// Старт
+selectDate(selectedDateKey, new Date());
