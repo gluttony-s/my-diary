@@ -1,284 +1,159 @@
-:root {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --paper-bg: #1e293b;
-  --accent-color: #3b82f6;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --danger-color: #ef4444;
-  --border-color: #334155;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  background-color: #121214;
+  color: #e4e4e7;
   display: flex;
   justify-content: center;
   min-height: 100vh;
 }
 
-.app-container {
+.app {
   width: 100%;
-  max-width: 480px;
-  height: 100vh;
+  max-width: 450px;
   display: flex;
-  flex-direction: column;
-  background-color: var(--bg-color);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Навигация сверху */
-.header {
-  padding: 12px 16px;
-  display: flex;
-  gap: 10px;
-  background: #0f172a;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.nav-tab {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--card-bg);
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.nav-tab.active {
-  background: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
-}
-
-.screen {
-  display: none;
-  flex: 1;
   flex-direction: column;
   padding: 16px;
-  overflow-y: auto;
+  gap: 12px;
 }
 
-.screen.active {
-  display: flex;
-}
-
-/* Сетка Календаря */
-.calendar-header {
+/* Шапка */
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 8px 0;
 }
 
-.calendar-header h2 {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.icon-btn-sm {
-  background: var(--card-bg);
-  color: white;
-  border: 1px solid var(--border-color);
+.header button {
+  background: #27272a;
+  color: #fff;
+  border: none;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  font-size: 1.2rem;
+  border-radius: 8px;
+  font-size: 18px;
   cursor: pointer;
 }
 
-.weekdays-grid {
+.header h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Календарь */
+.weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 10px;
+  font-size: 12px;
+  color: #71717a;
 }
 
-.days-grid {
+.calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
-.day-cell {
+.day {
   aspect-ratio: 1;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   position: relative;
 }
 
-.day-cell.today {
-  border-color: var(--accent-color);
-  color: var(--accent-color);
+.day.selected {
+  border-color: #6366f1;
+  background: #27272a;
 }
 
-.day-cell.has-entry {
-  background: #1e293b;
-}
-
-.day-cell .mood-dot {
-  font-size: 0.75rem;
+.day.has-note::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: #6366f1;
+  border-radius: 50%;
   position: absolute;
-  bottom: 2px;
+  bottom: 4px;
 }
 
-.day-cell.empty {
+.day.empty {
   background: transparent;
   border: none;
   cursor: default;
 }
 
-/* Книжная страница и анимация перелистывания */
-.book-viewport {
-  flex: 1;
-  display: flex;
-  perspective: 1000px;
-}
-
-.page-card {
-  flex: 1;
-  background: var(--paper-bg);
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  padding: 20px;
+/* Редактор */
+.editor {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  transform-origin: left center;
-}
-
-/* Классы для анимации перелистывания */
-.page-card.flip-next {
-  animation: flipNext 0.35s ease-in-out forwards;
-}
-
-.page-card.flip-prev {
-  animation: flipPrev 0.35s ease-in-out forwards;
-}
-
-@keyframes flipNext {
-  0% { transform: rotateY(0deg); opacity: 1; }
-  50% { transform: rotateY(-60deg) scale(0.95); opacity: 0.5; }
-  100% { transform: rotateY(0deg); opacity: 1; }
-}
-
-@keyframes flipPrev {
-  0% { transform: rotateY(0deg); opacity: 1; }
-  50% { transform: rotateY(60deg) scale(0.95); opacity: 0.5; }
-  100% { transform: rotateY(0deg); opacity: 1; }
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.flip-btn {
-  background: none;
-  border: none;
-  color: var(--accent-color);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.date-badge {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.mood-selector {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  background: #0f172a;
-  padding: 8px 12px;
+  gap: 10px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  padding: 14px;
   border-radius: 12px;
+  flex: 1;
 }
 
-.mood-title {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.mood-options {
+.editor-bar {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #a1a1aa;
+}
+
+.moods {
+  display: flex;
+  gap: 4px;
 }
 
 .mood-btn {
   background: none;
   border: none;
-  font-size: 1.2rem;
-  opacity: 0.4;
+  font-size: 18px;
+  opacity: 0.3;
   cursor: pointer;
+  padding: 2px;
 }
 
 .mood-btn.active {
   opacity: 1;
-  transform: scale(1.15);
+  transform: scale(1.2);
 }
 
-.title-input {
-  background: none;
+#note-title {
+  background: transparent;
   border: none;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: white;
-  padding-bottom: 8px;
-  margin-bottom: 16px;
+  border-bottom: 1px solid #27272a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 6px 0;
   outline: none;
 }
 
-.content-input {
-  background: none;
+#note-content {
+  background: transparent;
   border: none;
-  font-size: 1rem;
-  color: #cbd5e1;
-  flex: 1;
+  color: #d4d4d8;
+  font-size: 14px;
   resize: none;
   outline: none;
-  line-height: 1.6;
-}
-
-.page-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 10px;
-}
-
-.text-btn.danger {
-  background: none;
-  border: none;
-  color: var(--danger-color);
-  font-size: 0.85rem;
-  cursor: pointer;
+  flex: 1;
+  min-height: 150px;
+  line-height: 1.5;
 }
