@@ -3,44 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Мой Дневник</title>
+  <title>Дневник</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Поддержка PWA для iOS/Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-  <div class="app-container">
-    
-    <!-- Шапка -->
+
+  <div class="app">
+    <!-- Шапка с месяцем -->
     <header class="header">
-      <h1>📖 Мой Дневник</h1>
-      <button id="new-btn" class="icon-btn">+</button>
+      <button id="prev-month">‹</button>
+      <h2 id="month-title">Сентябрь 2026</h2>
+      <button id="next-month">›</button>
     </header>
 
-    <!-- Экран списка записей -->
-    <main id="list-screen" class="screen active">
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="🔍 Поиск записей...">
-      </div>
-      <div id="entries-list" class="entries-list">
-        <!-- Карточки будут появляться здесь -->
-      </div>
-    </main>
+    <!-- Дни недели -->
+    <div class="weekdays">
+      <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+    </div>
 
-    <!-- Экран редактора записи -->
-    <main id="editor-screen" class="screen">
-      <div class="editor-header">
-        <button id="back-btn" class="text-btn">← Назад</button>
-        <span id="entry-date" class="date-badge">Сегодня</span>
-        <button id="delete-btn" class="text-btn danger">Удалить</button>
-      </div>
+    <!-- Сетка дней -->
+    <div id="calendar-days" class="calendar-grid"></div>
 
-      <!-- Выбор настроения -->
-      <div class="mood-selector">
-        <span class="mood-title">Настроение:</span>
-        <div class="mood-options">
-          <button class="mood-btn active" data-mood="😊">😊</button>
+    <!-- Область записи -->
+    <div class="editor">
+      <div class="editor-bar">
+        <span id="selected-date-text">24 сентября</span>
+        
+        <div class="moods">
+          <button class="mood-btn" data-mood="😊">😊</button>
           <button class="mood-btn" data-mood="🙂">🙂</button>
           <button class="mood-btn" data-mood="😐">😐</button>
           <button class="mood-btn" data-mood="😔">😔</button>
@@ -48,10 +39,9 @@
         </div>
       </div>
 
-      <input type="text" id="entry-title" placeholder="Заголовок мысли..." class="title-input">
-      <textarea id="entry-content" placeholder="Как прошёл твой день? О чём думаешь?..." class="content-input"></textarea>
-    </main>
-
+      <input type="text" id="note-title" placeholder="Заголовок дня...">
+      <textarea id="note-content" placeholder="Напиши, как прошёл день..."></textarea>
+    </div>
   </div>
 
   <script src="app.js"></script>
