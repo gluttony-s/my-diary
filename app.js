@@ -191,6 +191,11 @@ moodBtns.forEach(btn => {
 function openCardEditor(cardId = null) {
   editingCardId = cardId;
   const dayCards = notes[selectedDateKey]?.cards || [];
+  
+  // Показываем дату в шапке редактора
+  const modalDateDisplay = document.getElementById('modal-date-display');
+  const dateObj = new Date(selectedDateKey);
+  modalDateDisplay.textContent = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
   if (cardId) {
     const card = dayCards.find(c => c.id === cardId);
@@ -198,17 +203,21 @@ function openCardEditor(cardId = null) {
     cardDescInput.value = card.desc || '';
     currentPhotos = [...(card.photos || [])];
     deleteCardBtn.classList.remove('hidden');
-    modalCardTitle.textContent = 'Редактировать карточку';
   } else {
     cardTopicInput.value = '';
     cardDescInput.value = '';
     currentPhotos = [];
     deleteCardBtn.classList.add('hidden');
-    modalCardTitle.textContent = 'Новая карточка';
   }
 
   renderModalPhotos();
   editorOverlay.classList.remove('hidden');
+  
+  // Авто-фокус на текст, если заголовок пустой
+  setTimeout(() => {
+    if (!cardTopicInput.value) cardTopicInput.focus();
+    else cardDescInput.focus();
+  }, 100);
 }
 
 // Загрузка фото
