@@ -17,7 +17,7 @@ function saveStorage(data) {
 let notes = loadStorage();
 let selectedDateKey = getFormattedKey(new Date());
 let currentWeekStart = getMonday(new Date());
-let chatHistory = [];
+let chatHistory = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
 let currentModalType = 'subtopic';
 
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -37,13 +37,11 @@ const todoList = document.getElementById('todo-list');
 const todosCounter = document.getElementById('todos-counter');
 const photoList = document.getElementById('photo-list');
 
-// Управление плюс-меню
 const addMainBtn = document.getElementById('add-main-btn');
 const plusOptions = document.getElementById('plus-options');
 const optAddTopic = document.getElementById('opt-add-topic');
 const optAddTask = document.getElementById('opt-add-task');
 
-// Модальное окно
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalInputTitle = document.getElementById('modal-input-title');
@@ -51,7 +49,6 @@ const modalInputBody = document.getElementById('modal-input-body');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-// AI
 const aiOverlay = document.getElementById('ai-overlay');
 const keyInput = document.getElementById('ai-key-input');
 const responseArea = document.getElementById('ai-response-area');
@@ -157,7 +154,6 @@ function ensureStorageStructure() {
   if (!notes[selectedDateKey].photos) notes[selectedDateKey].photos = [];
 }
 
-// Плюсик и создание задач / подтем
 addMainBtn.onclick = () => {
   addMainBtn.classList.toggle('active');
   plusOptions.classList.toggle('hidden');
@@ -209,7 +205,6 @@ modalSaveBtn.onclick = () => {
   renderWeek();
 };
 
-// 2. ПОДТЕМЫ
 function renderSubtopics() {
   subtopicsContainer.innerHTML = '';
   const subtopics = notes[selectedDateKey]?.subtopics || [];
@@ -276,7 +271,6 @@ function renderSubtopics() {
   });
 }
 
-// 3. ЗАДАЧИ
 function renderTodos() {
   todoList.innerHTML = '';
   const todos = notes[selectedDateKey]?.todos || [];
@@ -327,7 +321,6 @@ function deleteTodo(idx) {
   renderWeek();
 }
 
-// 4. ФОТОГРАФИИ
 document.getElementById('photo-input').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -384,7 +377,6 @@ function renderPhotos() {
   });
 }
 
-// Календарь и переключение недель
 monthSelector.onclick = () => {
   if (typeof calendarPicker.showPicker === 'function') {
     calendarPicker.showPicker();
@@ -416,7 +408,6 @@ document.getElementById('next-week').onclick = () => {
   selectDate(selectedDateKey, newSelectedDate);
 };
 
-// Настройки
 const radialToggleBtn = document.getElementById('radial-toggle-btn');
 const radialOptions = document.getElementById('radial-options');
 
@@ -453,7 +444,7 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// AI-ЧАТ С КРАСИВЫМ РЕНДЕРИНГОМ MARKDOWN И LATEX
+// AI-ЧАТ С ИСПРАВЛЕННЫМ ТАНДЕМОМ MARKDOWN + LATEX (KATEX)
 keyInput.value = localStorage.getItem('openrouter_api_key') || '';
 keyInput.onchange = () => localStorage.setItem('openrouter_api_key', keyInput.value.trim());
 
@@ -465,6 +456,12 @@ document.getElementById('opt-ai').onclick = () => {
 };
 
 document.getElementById('close-ai-btn').onclick = () => aiOverlay.classList.add('hidden');
+
+document.getElementById('clear-chat-btn').onclick = () => {
+  chatHistory = [];
+  localStorage.removeItem('ai_chat_history');
+  renderChat();
+};
 
 function renderChat() {
   responseArea.innerHTML = '';
@@ -481,18 +478,21 @@ function renderChat() {
     if (msg.role === 'user') {
       msgDiv.innerHTML = `<b>Ты:</b> ${escapeHtml(msg.text)}`;
     } else {
-      // Рендерим Markdown
-      const rawHtml = (typeof marked !== 'undefined') ? marked.parse(msg.text) : escapeHtml(msg.text);
+      // 1. Предобработка текста: защищаем форматы LaTeX от ломающего их Markdown-парсера
+      let processedText = msg.text
+        .replace(/\\\[/g, '$$$')         .replace(/\\\]/g, '$$$')
+        .replace(/\\\(/g, '$')         .replace(/\\\)/g, '$');
+
+      // 2. Преобразуем Markdown в HTML
+      const rawHtml = (typeof marked !== 'undefined') ? marked.parse(processedText) : escapeHtml(processedText);
       msgDiv.innerHTML = `<div class="ai-role-label"><b>AI:</b></div><div class="markdown-body">${rawHtml}</div>`;
 
-      // Рендерим математические формулы LaTeX (KaTeX)
+      // 3. Запускаем KaTeX для корректного рендеринга формул
       if (typeof renderMathInElement !== 'undefined') {
         renderMathInElement(msgDiv, {
           delimiters: [
             {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false},
-            {left: '\\[', right: '\\]', display: true},
-            {left: '\\(', right: '\\)', display: false}
+            {left: '$', right: '$', display: false}
           ],
           throwOnError: false
         });
@@ -502,7 +502,10 @@ function renderChat() {
     responseArea.appendChild(msgDiv);
   });
 
-  responseArea.scrollTop = responseArea.scrollHeight;
+  // Автоскролл вниз
+  setTimeout(() => {
+    responseArea.scrollTop = responseArea.scrollHeight;
+  }, 50);
 }
 
 function escapeHtml(text) {
@@ -530,7 +533,6 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   chatHistory.push({ role: 'assistant', text: 'Думаю...' });
   renderChat();
 
-  // Собираем контекст дневника
   let diaryContext = "";
   Object.keys(notes).forEach(date => {
     const day = notes[date];
@@ -607,6 +609,7 @@ ${diaryContext || 'Записей в дневнике пока нет.'}
   }
 
   chatHistory[chatHistory.length - 1].text = aiReplyText || 'Ошибка получения ответа от сервера.';
+  localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
   renderChat();
 };
 
