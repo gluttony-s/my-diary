@@ -12,7 +12,7 @@
 <body>
 
   <div class="app">
-    <!-- Шапка: Название месяца и переключение недель -->
+    <!-- Шапка: Переключение недель -->
     <header class="header">
       <div class="month-selector">
         <button id="prev-week">‹</button>
@@ -36,13 +36,13 @@
       </div>
     </div>
 
-    <!-- Дочерние карточки дня -->
+    <!-- Список карточек выбранного дня -->
     <div id="cards-container" class="cards-container"></div>
 
     <!-- Кнопка добавления карточки (+) -->
     <button id="add-card-btn" class="fab-btn">+</button>
 
-    <!-- ВСПЛЫВАЮЩЕЕ КРУГОВОЕ МЕНЮ (Floating Radial Menu) -->
+    <!-- РАДИАЛЬНОЕ МЕНЮ (3 полоски разлетаются на кружочки) -->
     <div class="radial-menu-container">
       <button id="radial-toggle-btn" class="radial-main-btn">
         <span class="bar bar1"></span>
@@ -51,12 +51,9 @@
       </button>
 
       <div id="radial-options" class="radial-options hidden">
-        <!-- Кнопка AI -->
-        <button id="opt-ai" class="radial-item" title="Задать вопрос AI">🤖</button>
-        <!-- Кнопка Скачать бэкап -->
+        <button id="opt-ai" class="radial-item" title="AI Ассистент">🤖</button>
         <button id="opt-export" class="radial-item" title="Скачать бэкап">📥</button>
-        <!-- Кнопка Загрузить бэкап -->
-        <label class="radial-item" title="Загрузить файл">
+        <label class="radial-item" title="Загрузить бэкап">
           📤
           <input type="file" id="import-file" accept=".json" style="display: none;">
         </label>
@@ -90,15 +87,16 @@
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО AI ВОПРОСА -->
+  <!-- МОДАЛЬНОЕ ОКНО УМНОГО AI -->
   <div id="ai-overlay" class="overlay hidden">
     <div class="modal ai-modal">
       <div class="modal-header">
-        <h3>🤖 AI Вопрос по записям</h3>
+        <h3>🤖 Умный AI-помощник</h3>
         <button id="close-ai-btn" class="icon-btn">✕</button>
       </div>
       <div class="ai-box">
-        <textarea id="ai-question-input" placeholder="Задай любой вопрос по своим карточкам (например: «Что я делал в прошлый вторник?»)..."></textarea>
+        <input type="password" id="ai-key-input" placeholder="Вставь Gemini API Key..." style="background:#27272a; border:1px solid #3f3f46; color:#fff; padding:8px; border-radius:6px; font-size:12px;">
+        <textarea id="ai-question-input" placeholder="Спроси что угодно по своим записям (например: «Когда я последний раз тренировался?»)"></textarea>
         <button id="ai-ask-btn" class="save-btn">Спросить AI</button>
         <div id="ai-response-area" class="ai-response hidden"></div>
       </div>
