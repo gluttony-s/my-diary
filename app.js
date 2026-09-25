@@ -1,6 +1,26 @@
 function loadStorage() {
   try {
-    return JSON.parse(localStorage.getItem('my_simple_diary')) || {};
+    let rawData = JSON.parse(localStorage.getItem('my_simple_diary')) || {};
+    
+    // Авто-миграция под систему карточек
+    Object.keys(rawData).forEach(dateKey => {
+      const item = rawData[dateKey];
+      if (item && !item.cards && (item.title || item.content || item.photos)) {
+        rawData[dateKey] = {
+          mood: item.mood || '',
+          cards: [
+            {
+              id: Date.now() + Math.random(),
+              topic: item.title || '',
+              desc: item.content || '',
+              photos: item.photos || []
+            }
+          ]
+        };
+      }
+    });
+
+    return rawData;
   } catch (e) {
     return {};
   }
@@ -15,24 +35,24 @@ function saveStorage(data) {
 }
 
 let notes = loadStorage();
-let viewDate = new Date();
 let selectedDateKey = getFormattedKey(new Date());
+let currentWeekStart = getMonday(new Date());
 
 let editingCardId = null;
 let currentPhotos = [];
 
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const dayNamesShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 // DOM элементы
 const monthTitle = document.getElementById('month-title');
-const calendarDays = document.getElementById('calendar-days');
+const weekDaysContainer = document.getElementById('week-days');
 const selectedDateTitle = document.getElementById('selected-date-title');
 const cardsContainer = document.getElementById('cards-container');
 const moodBtns = document.querySelectorAll('.mood-btn');
 
 // Оверлеи
 const editorOverlay = document.getElementById('editor-overlay');
-const menuOverlay = document.getElementById('menu-overlay');
 const aiOverlay = document.getElementById('ai-overlay');
 
 // Поля карточки
@@ -49,41 +69,48 @@ function getFormattedKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function renderCalendar() {
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
 
-  monthTitle.textContent = `${monthNames[month]} ${year}`;
-  calendarDays.innerHTML = '';
+// Отрисовка недельной ленты вместо 30 дней
+function renderWeek() {
+  weekDaysContainer.innerHTML = '';
+  
+  // Определяем месяц по серединному дню недели
+  const midWeekDate = new Date(currentWeekStart);
+  midWeekDate.setDate(midWeekDate.getDate() + 3);
+  monthTitle.textContent = `${monthNames[midWeekDate.getMonth()]} ${midWeekDate.getFullYear()}`;
 
-  let firstDay = new Date(year, month, 1).getDay();
-  firstDay = firstDay === 0 ? 6 : firstDay - 1;
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(currentWeekStart);
+    dayDate.setDate(dayDate.getDate() + i);
+    const key = getFormattedKey(dayDate);
 
-  const totalDays = new Date(year, month + 1, 0).getDate();
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (key === selectedDateKey) cell.classList.add('selected');
 
-  for (let i = 0; i < firstDay; i++) {
-    const empty = document.createElement('div');
-    empty.className = 'day empty';
-    calendarDays.appendChild(empty);
-  }
-
-  for (let day = 1; day <= totalDays; day++) {
-    const dateObj = new Date(year, month, day);
-    const key = getFormattedKey(dateObj);
-
-    const dayEl = document.createElement('div');
-    dayEl.className = 'day';
-    dayEl.textContent = day;
-
-    if (key === selectedDateKey) dayEl.classList.add('selected');
-    
-    // Точка в календаре если есть хоть одна карточка или настроение
     if (notes[key] && ((notes[key].cards && notes[key].cards.length > 0) || notes[key].mood)) {
-      dayEl.classList.add('has-note');
+      cell.classList.add('has-note');
     }
 
-    dayEl.onclick = () => selectDate(key, dateObj);
-    calendarDays.appendChild(dayEl);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'day-name';
+    nameEl.textContent = dayNamesShort[i];
+
+    const numEl = document.createElement('span');
+    numEl.className = 'day-num';
+    numEl.textContent = dayDate.getDate();
+
+    cell.appendChild(nameEl);
+    cell.appendChild(numEl);
+
+    cell.onclick = () => selectDate(key, dayDate);
+    weekDaysContainer.appendChild(cell);
   }
 
   renderCards();
@@ -96,7 +123,7 @@ function selectDate(key, dateObj) {
   const dayData = notes[selectedDateKey] || { mood: '', cards: [] };
   setMood(dayData.mood || '');
 
-  renderCalendar();
+  renderWeek();
 }
 
 function renderCards() {
@@ -104,7 +131,7 @@ function renderCards() {
   const dayData = notes[selectedDateKey];
 
   if (!dayData || !dayData.cards || dayData.cards.length === 0) {
-    cardsContainer.innerHTML = '<div style="color:#71717a; font-size:13px; text-align:center; padding:12px;">Нет карточек на этот день. Нажми +, чтобы добавить.</div>';
+    cardsContainer.innerHTML = '<div style="color:#71717a; font-size:13px; text-align:center; padding:16px;">Нет карточек на этот день. Нажми +, чтобы добавить.</div>';
     return;
   }
 
@@ -142,7 +169,6 @@ function renderCards() {
   });
 }
 
-// Настроение
 function setMood(mood) {
   if (!notes[selectedDateKey]) notes[selectedDateKey] = { mood: '', cards: [] };
   notes[selectedDateKey].mood = mood;
@@ -152,7 +178,7 @@ function setMood(mood) {
   });
 
   saveStorage(notes);
-  renderCalendar();
+  renderWeek();
 }
 
 moodBtns.forEach(btn => {
@@ -186,7 +212,7 @@ function openCardEditor(cardId = null) {
   editorOverlay.classList.remove('hidden');
 }
 
-// Загрузка фото в карточку
+// Загрузка фото
 document.getElementById('photo-input').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -271,7 +297,7 @@ document.getElementById('save-card-btn').onclick = () => {
   saveStorage(notes);
 
   editorOverlay.classList.add('hidden');
-  renderCalendar();
+  renderWeek();
 };
 
 // Удаление карточки
@@ -282,30 +308,34 @@ deleteCardBtn.onclick = () => {
   saveStorage(notes);
 
   editorOverlay.classList.add('hidden');
-  renderCalendar();
+  renderWeek();
 };
 
-// Кнопка добавления карточки (+)
 document.getElementById('add-card-btn').onclick = () => openCardEditor(null);
 document.getElementById('close-editor-btn').onclick = () => editorOverlay.classList.add('hidden');
 
-// Управление меню
-document.getElementById('menu-btn').onclick = () => menuOverlay.classList.remove('hidden');
-document.getElementById('close-menu-btn').onclick = () => menuOverlay.classList.add('hidden');
-
-// Переключение месяцев
-document.getElementById('prev-month').onclick = () => {
-  viewDate.setMonth(viewDate.getMonth() - 1);
-  renderCalendar();
+// Переключение недель
+document.getElementById('prev-week').onclick = () => {
+  currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+  renderWeek();
 };
 
-document.getElementById('next-month').onclick = () => {
-  viewDate.setMonth(viewDate.getMonth() + 1);
-  renderCalendar();
+document.getElementById('next-week').onclick = () => {
+  currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+  renderWeek();
+};
+
+// АНИМАЦИЯ И ЛОГИКА РАДИАЛЬНОГО МЕНЮ
+const radialToggleBtn = document.getElementById('radial-toggle-btn');
+const radialOptions = document.getElementById('radial-options');
+
+radialToggleBtn.onclick = () => {
+  radialToggleBtn.classList.toggle('active');
+  radialOptions.classList.toggle('hidden');
 };
 
 // Экспорт / Импорт
-document.getElementById('export-btn').onclick = () => {
+document.getElementById('opt-export').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(notes, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
@@ -326,7 +356,7 @@ document.getElementById('import-file').onchange = (event) => {
       notes = { ...notes, ...importedNotes };
       saveStorage(notes);
       selectDate(selectedDateKey, new Date());
-      alert('Записи с карточками успешно загружены!');
+      alert('Данные загружены!');
     } catch (err) {
       alert('Ошибка при чтении файла бэкапа.');
     }
@@ -334,34 +364,51 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// AI Чат
-document.getElementById('ai-chat-btn').onclick = () => {
-  menuOverlay.classList.add('hidden');
+// ПРОСТОЙ И РАБОЧИЙ AI-ВОПРОС ПО ВСЕМ ЗАПИСЯМ
+document.getElementById('opt-ai').onclick = () => {
+  radialToggleBtn.classList.remove('active');
+  radialOptions.classList.add('hidden');
+  document.getElementById('ai-response-area').classList.add('hidden');
+  document.getElementById('ai-question-input').value = '';
   aiOverlay.classList.remove('hidden');
 };
+
 document.getElementById('close-ai-btn').onclick = () => aiOverlay.classList.add('hidden');
 
-document.getElementById('ai-send-btn').onclick = () => {
-  const input = document.getElementById('ai-input');
-  const text = input.value.trim();
-  if (!text) return;
+document.getElementById('ai-ask-btn').onclick = () => {
+  const query = document.getElementById('ai-question-input').value.trim().toLowerCase();
+  const responseArea = document.getElementById('ai-response-area');
 
-  const messagesDiv = document.getElementById('ai-messages');
-  
-  const userMsg = document.createElement('div');
-  userMsg.className = 'msg user';
-  userMsg.textContent = text;
-  messagesDiv.appendChild(userMsg);
+  if (!query) return;
 
-  input.value = '';
+  responseArea.textContent = 'Ищу совпадения по карточкам...';
+  responseArea.classList.remove('hidden');
+
+  // Локальный поиск по темам и описаниям всех карточек
+  let foundCards = [];
+  Object.keys(notes).forEach(date => {
+    const cards = notes[date].cards || [];
+    cards.forEach(card => {
+      const t = (card.topic || '').toLowerCase();
+      const d = (card.desc || '').toLowerCase();
+      if (t.includes(query) || d.includes(query)) {
+        foundCards.push({ date, topic: card.topic, desc: card.desc });
+      }
+    });
+  });
 
   setTimeout(() => {
-    const aiMsg = document.createElement('div');
-    aiMsg.className = 'msg ai';
-    aiMsg.textContent = `Анализирую карточки дня по запросу: "${text}"...`;
-    messagesDiv.appendChild(aiMsg);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }, 600);
+    if (foundCards.length === 0) {
+      responseArea.textContent = `По запросу "${query}" совпадений в карточках не найдено.`;
+    } else {
+      let resText = `Найдено записей: ${foundCards.length}\n\n`;
+      foundCards.forEach(item => {
+        resText += `📅 ${item.date}\n• ${item.topic || 'Без темы'}: ${item.desc || ''}\n\n`;
+      });
+      responseArea.textContent = resText;
+    }
+  }, 400);
 };
 
+// Старт
 selectDate(selectedDateKey, new Date());
