@@ -12,7 +12,7 @@
 <body>
 
   <div class="app">
-    <!-- Шапка: Переключение недель -->
+    <!-- Шапка -->
     <header class="header">
       <div class="month-selector">
         <button id="prev-week">‹</button>
@@ -21,10 +21,10 @@
       </div>
     </header>
 
-    <!-- Компактная текущая неделя (7 дней) -->
+    <!-- Сетка дней -->
     <div id="week-days" class="week-grid"></div>
 
-    <!-- Заголовок выбранного дня и настроение -->
+    <!-- Заголовок выбранного дня -->
     <div class="day-header">
       <h3 id="selected-date-title">25 сентября</h3>
       <div class="moods">
@@ -36,20 +36,19 @@
       </div>
     </div>
 
-    <!-- Список карточек выбранного дня -->
+    <!-- Карточки -->
     <div id="cards-container" class="cards-container"></div>
 
-    <!-- Кнопка добавления карточки (+) -->
+    <!-- Кнопка (+) -->
     <button id="add-card-btn" class="fab-btn">+</button>
 
-    <!-- РАДИАЛЬНОЕ МЕНЮ (3 полоски разлетаются на кружочки) -->
+    <!-- Радиальное меню -->
     <div class="radial-menu-container">
       <button id="radial-toggle-btn" class="radial-main-btn">
         <span class="bar bar1"></span>
         <span class="bar bar2"></span>
         <span class="bar bar3"></span>
       </button>
-
       <div id="radial-options" class="radial-options hidden">
         <button id="opt-ai" class="radial-item" title="AI Ассистент">🤖</button>
         <button id="opt-export" class="radial-item" title="Скачать бэкап">📥</button>
@@ -61,43 +60,44 @@
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ / РЕДАКТИРОВАНИЯ КАРТОЧКИ -->
+  <!-- НОВЫЙ ПОЛНОЭКРАННЫЙ РЕДАКТОР ЗАПИСЕЙ -->
   <div id="editor-overlay" class="overlay hidden">
-    <div class="modal">
+    <div class="modal full-screen-modal">
+      
       <div class="modal-header">
-        <h3 id="modal-card-title">Новая карточка</h3>
-        <button id="close-editor-btn" class="icon-btn">✕</button>
+        <button id="close-editor-btn" class="text-btn">Отмена</button>
+        <span id="modal-date-display" class="modal-date"></span>
+        <button id="save-card-btn" class="text-btn primary-text">Готово</button>
       </div>
 
-      <input type="text" id="card-topic-input" placeholder="Тема / Заголовок...">
-      <textarea id="card-desc-input" placeholder="Описание..."></textarea>
-
-      <div class="photo-section">
-        <label class="photo-add-btn">
-          📷 Добавить фото
-          <input type="file" id="photo-input" accept="image/*" style="display: none;">
-        </label>
+      <div class="editor-body">
+        <input type="text" id="card-topic-input" placeholder="Заголовок">
+        <textarea id="card-desc-input" placeholder="Начни писать..."></textarea>
         <div id="modal-photo-list" class="modal-photo-list"></div>
       </div>
 
-      <div class="modal-actions">
-        <button id="delete-card-btn" class="del-btn hidden">Удалить</button>
-        <button id="save-card-btn" class="save-btn">Сохранить</button>
+      <div class="editor-footer">
+        <label class="icon-btn-footer">
+          📷 Фото
+          <input type="file" id="photo-input" accept="image/*" style="display: none;">
+        </label>
+        <button id="delete-card-btn" class="icon-btn-footer del-btn hidden">🗑️ Удалить</button>
       </div>
+
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО УМНОГО AI -->
+  <!-- ОКНО УМНОГО AI -->
   <div id="ai-overlay" class="overlay hidden">
     <div class="modal ai-modal">
       <div class="modal-header">
-        <h3>🤖 Умный AI-помощник</h3>
+        <h3>🤖 AI-помощник</h3>
         <button id="close-ai-btn" class="icon-btn">✕</button>
       </div>
       <div class="ai-box">
-        <input type="password" id="ai-key-input" placeholder="Вставь Gemini API Key..." style="background:#27272a; border:1px solid #3f3f46; color:#fff; padding:8px; border-radius:6px; font-size:12px;">
-        <textarea id="ai-question-input" placeholder="Спроси что угодно по своим записям (например: «Когда я последний раз тренировался?»)"></textarea>
-        <button id="ai-ask-btn" class="save-btn">Спросить AI</button>
+        <input type="password" id="ai-key-input" placeholder="Вставь бесплатный Gemini API Key..." style="background:#27272a; border:1px solid #3f3f46; color:#fff; padding:8px; border-radius:6px; font-size:12px;">
+        <textarea id="ai-question-input" placeholder="Например: В какие дни я тренировался?"></textarea>
+        <button id="ai-ask-btn" class="save-btn">Спросить</button>
         <div id="ai-response-area" class="ai-response hidden"></div>
       </div>
     </div>
