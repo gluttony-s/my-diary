@@ -2,7 +2,7 @@ function loadStorage() {
   try {
     let rawData = JSON.parse(localStorage.getItem('my_simple_diary')) || {};
     
-    // Авто-миграция под систему карточек
+    // Авто-миграция под систему карточек, если были старые записи
     Object.keys(rawData).forEach(dateKey => {
       const item = rawData[dateKey];
       if (item && !item.cards && (item.title || item.content || item.photos)) {
@@ -55,12 +55,12 @@ const moodBtns = document.querySelectorAll('.mood-btn');
 const editorOverlay = document.getElementById('editor-overlay');
 const aiOverlay = document.getElementById('ai-overlay');
 
-// Поля карточки
+// Поля карточки (Полноэкранные)
 const cardTopicInput = document.getElementById('card-topic-input');
 const cardDescInput = document.getElementById('card-desc-input');
 const modalPhotoList = document.getElementById('modal-photo-list');
 const deleteCardBtn = document.getElementById('delete-card-btn');
-const modalCardTitle = document.getElementById('modal-card-title');
+const modalDateDisplay = document.getElementById('modal-date-display');
 
 function getFormattedKey(date) {
   const y = date.getFullYear();
@@ -187,13 +187,12 @@ moodBtns.forEach(btn => {
   };
 });
 
-// Открытие редактора карточки
+// Открытие ПОЛНОЭКРАННОГО редактора карточки
 function openCardEditor(cardId = null) {
   editingCardId = cardId;
   const dayCards = notes[selectedDateKey]?.cards || [];
   
   // Показываем дату в шапке редактора
-  const modalDateDisplay = document.getElementById('modal-date-display');
   const dateObj = new Date(selectedDateKey);
   modalDateDisplay.textContent = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
@@ -372,7 +371,7 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// НАСТОЯЩИЙ УМНЫЙ AI-ПОМОЩНИК ЧЕРЕЗ API
+// УМНЫЙ AI-ПОМОЩНИК ЧЕРЕЗ GEMINI API
 const keyInput = document.getElementById('ai-key-input');
 keyInput.value = localStorage.getItem('gemini_api_key') || '';
 keyInput.onchange = () => localStorage.setItem('gemini_api_key', keyInput.value.trim());
@@ -393,7 +392,7 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   const responseArea = document.getElementById('ai-response-area');
 
   if (!apiKey) {
-    alert('Пожалуйста, введи API ключ Gemini (он бесплатный).');
+    alert('Пожалуйста, введи API ключ Gemini (он бесплатный на сайте Google AI Studio).');
     return;
   }
 
@@ -442,7 +441,7 @@ ${diaryContext}
     if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
       responseArea.textContent = data.candidates[0].content.parts[0].text;
     } else {
-      responseArea.textContent = 'Не удалось получить ответ. Проверь API ключ.';
+      responseArea.textContent = 'Не удалось получить ответ. Проверь API ключ (убедись, что нет пробелов).';
     }
   } catch (e) {
     responseArea.textContent = 'Ошибка сети или неверный API-ключ.';
