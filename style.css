@@ -67,6 +67,8 @@ body {
   width: 34px;
   height: 34px;
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Неделя */
@@ -87,6 +89,8 @@ body {
   gap: 4px;
   cursor: pointer;
   position: relative;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .day-cell.selected {
@@ -138,6 +142,8 @@ body {
   cursor: pointer;
   border-radius: 6px;
   padding: 2px 4px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mood-btn.active {
@@ -281,6 +287,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .custom-checkbox.checked {
@@ -312,6 +319,7 @@ body {
   color: #52525b;
   font-size: 13px;
   cursor: pointer;
+  outline: none;
 }
 
 .del-btn:hover {
@@ -358,7 +366,10 @@ body {
   cursor: pointer;
 }
 
-/* Плавающая панель управления */
+/* =======================================================
+   ОБНОВЛЕННЫЕ СТИЛИ КНОПОК ПЛЮСА И НАСТРОЕК
+   ======================================================= */
+
 .floating-controls {
   position: fixed;
   bottom: 20px;
@@ -369,28 +380,72 @@ body {
   z-index: 50;
 }
 
+/* Базовые стили для всех круглосуточных кнопок управления */
 .circle-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 1px solid #3f3f46;
   background: #27272a;
   color: #fff;
-  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s;
+  
+  /* УБИРАЕМ СИНИЙ КВАДРАТ И ВЫДЕЛЕНИЕ */
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  
+  /* Единая плавная анимация для обеих кнопок */
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              background-color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* SVG Иконки внутри кнопок */
+.btn-icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  transition: transform 0.3s ease;
+}
+
+/* Наведение мыши (Hover) */
 .circle-btn:hover {
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.05);
+  background-color: #3f3f46;
+  border-color: #52525b;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
+.circle-btn:hover .icon-settings {
+  transform: rotate(90deg); /* Шестеренка плавно вращается */
+}
+
+/* Физическое нажатие (Active) для обеих кнопок */
+.circle-btn:active {
+  transform: translateY(1px) scale(0.94) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Поворот плюсика при открытии меню */
 .main-plus-btn.active {
   transform: rotate(45deg);
   background: #3f3f46;
+  border-color: #52525b;
+}
+
+.main-plus-btn.active:hover {
+  transform: rotate(45deg) scale(1.05);
+}
+
+/* Вращение настроек при активности */
+.settings-btn.active .icon-settings {
+  transform: rotate(180deg);
 }
 
 .add-menu-wrapper {
@@ -414,13 +469,17 @@ body {
 
 .opt-topic {
   background: #1e3a8a;
+  border-color: #2563eb;
   color: #60a5fa;
   font-weight: 600;
+  font-size: 16px;
 }
 
 .opt-task {
-  background: #16a34a;
-  color: #fff;
+  background: #14532d;
+  border-color: #16a34a;
+  color: #4ade80;
+  font-size: 16px;
 }
 
 .radial-menu {
@@ -429,7 +488,7 @@ body {
 
 .radial-options {
   position: absolute;
-  bottom: 54px;
+  bottom: 58px;
   right: 0;
   display: flex;
   flex-direction: column;
@@ -437,8 +496,8 @@ body {
 }
 
 .radial-opt-btn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #18181b;
   border: 1px solid #27272a;
@@ -447,6 +506,18 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.radial-opt-btn:hover {
+  transform: scale(1.08);
+  background: #27272a;
+}
+
+.radial-opt-btn:active {
+  transform: scale(0.92);
 }
 
 .hidden {
@@ -513,6 +584,8 @@ body {
   padding: 8px 14px;
   cursor: pointer;
   font-size: 13px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .primary-btn {
@@ -557,6 +630,7 @@ body {
   color: #ef4444;
   font-size: 12px;
   cursor: pointer;
+  outline: none;
 }
 
 .icon-btn {
@@ -565,6 +639,7 @@ body {
   color: #fff;
   font-size: 18px;
   cursor: pointer;
+  outline: none;
 }
 
 .ai-key-box input, .ai-input-box input {
