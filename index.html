@@ -2,103 +2,108 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Дневник</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный Дневник</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#121214">
 </head>
 <body>
 
-  <div class="app">
+  <div class="app-container">
     <!-- Шапка -->
-    <header class="header">
-      <div class="month-selector">
-        <button id="prev-week">‹</button>
+    <header class="app-header">
+      <button id="prev-week" class="nav-btn">‹</button>
+      <div class="month-selector" id="month-selector">
         <h2 id="month-title">Сентябрь 2026</h2>
-        <button id="next-week">›</button>
+        <input type="date" id="calendar-picker">
       </div>
+      <button id="next-week" class="nav-btn">›</button>
     </header>
 
-    <!-- Сетка дней -->
-    <div id="week-days" class="week-grid"></div>
+    <!-- Лента 7 дней недели -->
+    <div id="week-days" class="week-days"></div>
 
-    <!-- Заголовок выбранного дня -->
-    <div class="day-header">
+    <!-- Панель статуса: дата и настроение -->
+    <div class="day-status-bar">
       <h3 id="selected-date-title">25 сентября</h3>
-      <div class="moods">
+      <div class="mood-selector">
         <button class="mood-btn" data-mood="😊">😊</button>
-        <button class="mood-btn" data-mood="🙂">🙂</button>
         <button class="mood-btn" data-mood="😐">😐</button>
         <button class="mood-btn" data-mood="😔">😔</button>
         <button class="mood-btn" data-mood="🔥">🔥</button>
       </div>
     </div>
 
-    <!-- Карточки -->
-    <div id="cards-container" class="cards-container"></div>
+    <!-- Основной контент выбранного дня -->
+    <main class="day-content">
+      <!-- Поле для основного текста дня -->
+      <div class="main-note-section">
+        <textarea id="main-note-input" placeholder="Как прошёл твой день? Запиши главные мысли..."></textarea>
+      </div>
 
-    <!-- Кнопка (+) -->
-    <button id="add-card-btn" class="fab-btn">+</button>
+      <!-- Минималистичный блок задач и тем -->
+      <div class="todos-section">
+        <div class="section-title">
+          <h4>План и задачи</h4>
+          <span id="todos-counter" class="counter">0/0</span>
+        </div>
 
-    <!-- Радиальное меню -->
-    <div class="radial-menu-container">
-      <button id="radial-toggle-btn" class="radial-main-btn">
-        <span class="bar bar1"></span>
-        <span class="bar bar2"></span>
-        <span class="bar bar3"></span>
-      </button>
+        <!-- Контейнер элементов (заголовки и задачи) -->
+        <div id="todo-list" class="todo-list"></div>
+
+        <!-- Минималистичное инлайн добавление -->
+        <div class="add-todo-container">
+          <div class="add-input-wrapper">
+            <input type="text" id="new-todo-input" placeholder="Начни вводить...">
+            
+            <!-- Анимированные кружочки выбора -->
+            <div class="add-actions">
+              <button id="add-trigger-btn" class="add-circle-btn main-plus" title="Добавить">+</button>
+              <div id="plus-options" class="plus-options hidden">
+                <button id="add-heading-btn" class="add-circle-btn opt-heading" title="Добавить тему/заголовок">T</button>
+                <button id="add-task-btn" class="add-circle-btn opt-task" title="Добавить задачу">✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Блок прикрепленных фотографий -->
+      <div class="photos-section">
+        <div class="section-title">
+          <h4>Фотографии</h4>
+          <label for="photo-input" class="add-photo-label">+ Добавить фото</label>
+          <input type="file" id="photo-input" accept="image/*" class="hidden">
+        </div>
+        <div id="photo-list" class="photo-grid"></div>
+      </div>
+    </main>
+
+    <!-- Нижнее меню -->
+    <div class="radial-menu">
+      <button id="radial-toggle-btn" class="radial-main-btn">⚙️</button>
       <div id="radial-options" class="radial-options hidden">
-        <button id="opt-ai" class="radial-item" title="AI Ассистент">🤖</button>
-        <button id="opt-export" class="radial-item" title="Скачать бэкап">📥</button>
-        <label class="radial-item" title="Загрузить бэкап">
-          📤
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-        </label>
+        <button id="opt-ai" class="radial-opt-btn" title="AI-Чат">🤖</button>
+        <button id="opt-export" class="radial-opt-btn" title="Скачать бэкап">📥</button>
+        <label for="import-file" class="radial-opt-btn" title="Загрузить бэкап">📤</label>
+        <input type="file" id="import-file" accept=".json" class="hidden">
       </div>
     </div>
   </div>
 
-  <!-- ПОЛНОЭКРАННЫЙ РЕДАКТОР ЗАПИСЕЙ -->
-  <div id="editor-overlay" class="overlay hidden">
-    <div class="modal full-screen-modal">
-      
-      <div class="modal-header">
-        <button id="close-editor-btn" class="text-btn">Отмена</button>
-        <span id="modal-date-display" class="modal-date"></span>
-        <button id="save-card-btn" class="text-btn primary-text">Готово</button>
-      </div>
-
-      <div class="editor-body">
-        <input type="text" id="card-topic-input" placeholder="Заголовок">
-        <textarea id="card-desc-input" placeholder="Начни писать..."></textarea>
-        <div id="modal-photo-list" class="modal-photo-list"></div>
-      </div>
-
-      <div class="editor-footer">
-        <label class="icon-btn-footer">
-          📷 Фото
-          <input type="file" id="photo-input" accept="image/*" style="display: none;">
-        </label>
-        <button id="delete-card-btn" class="icon-btn-footer del-btn hidden">🗑️ Удалить</button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ОКНО УМНОГО AI -->
+  <!-- AI Оверлей -->
   <div id="ai-overlay" class="overlay hidden">
-    <div class="modal ai-modal">
-      <div class="modal-header">
-        <h3>🤖 AI-помощник</h3>
+    <div class="ai-container">
+      <div class="ai-header">
+        <h3>AI-Ассистент</h3>
         <button id="close-ai-btn" class="icon-btn">✕</button>
       </div>
-      <div class="ai-box">
-        <input type="password" id="ai-key-input" placeholder="Введи OpenRouter API ключ (sk-or-v1-...)" style="background:#27272a; border:1px solid #3f3f46; color:#fff; padding:8px; border-radius:6px; font-size:12px;">
-        <textarea id="ai-question-input" placeholder="Например: В какие дни я тренировался?"></textarea>
-        <button id="ai-ask-btn" class="save-btn">Спросить</button>
-        <div id="ai-response-area" class="ai-response hidden"></div>
+      <div class="ai-key-box">
+        <input type="password" id="ai-key-input" placeholder="Введи OpenRouter API ключ (sk-or-v1-...)">
+      </div>
+      <div id="ai-response-area" class="ai-chat-history hidden"></div>
+      <div class="ai-input-box">
+        <input type="text" id="ai-question-input" placeholder="Задай любой вопрос или проанализируй записи...">
+        <button id="ai-ask-btn" class="primary-btn">Отправить</button>
       </div>
     </div>
   </div>
