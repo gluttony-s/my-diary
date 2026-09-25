@@ -419,36 +419,51 @@ document.getElementById('ai-ask-btn').onclick = async () => {
     return;
   }
 
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Ты персональный ассистент по личным записям дневника. 
+  const promptText = `Ты персональный ассистент по личным записям дневника. 
 Вот вся история записей пользователя:
 ${diaryContext}
 
 Ответь кратко и точно на вопрос пользователя, опираясь строго на эти данные.
-Вопрос: "${query}"`
-          }]
-        }]
-      })
-    });
+Вопрос: "${query}"`;
 
-    const data = await res.json();
-    
-    if (data.error) {
-      responseArea.textContent = `Ошибка API: ${data.error.message || 'Проверь корректность ключа'}`;
-    } else if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-      responseArea.textContent = data.candidates[0].content.parts[0].text;
-    } else {
-      responseArea.textContent = 'Не удалось получить ответ. Проверь ключ на лишние пробелы.';
+  // Список моделей по приоритету (начиная с указанной в ошибке)
+  const modelsToTry = [
+    'gemini-3.8-flash',
+    'gemini-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-flash'
+  ];
+
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: promptText }]
+          }]
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        responseArea.textContent = data.candidates[0].content.parts[0].text;
+        return;
+      }
+
+      if (data.error) {
+        lastError = data.error.message;
+      }
+    } catch (e) {
+      lastError = 'Ошибка сети / VPN';
     }
-  } catch (e) {
-    responseArea.textContent = 'Ошибка сети. Если запрос не проходит, убедись, что включен VPN (Google API блокирует прямые запросы из некоторых регионов).';
   }
+
+  responseArea.textContent = `Ошибка API: ${lastError || 'Не удалось связаться с Gemini API. Проверь ключ и подключение.'}`;
 };
 
 // Инициализация при старте
