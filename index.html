@@ -12,25 +12,19 @@
 <body>
 
   <div class="app">
-    <!-- Шапка с календарем и кнопкой меню -->
+    <!-- Шапка: Название месяца и переключение недель -->
     <header class="header">
       <div class="month-selector">
-        <button id="prev-month">‹</button>
+        <button id="prev-week">‹</button>
         <h2 id="month-title">Сентябрь 2026</h2>
-        <button id="next-month">›</button>
+        <button id="next-week">›</button>
       </div>
-      <button id="menu-btn" class="icon-btn">☰</button>
     </header>
 
-    <!-- Дни недели -->
-    <div class="weekdays">
-      <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-    </div>
+    <!-- Компактная текущая неделя (7 дней) -->
+    <div id="week-days" class="week-grid"></div>
 
-    <!-- Сетка дней -->
-    <div id="calendar-days" class="calendar-grid"></div>
-
-    <!-- Разделитель с датой -->
+    <!-- Заголовок выбранного дня и настроение -->
     <div class="day-header">
       <h3 id="selected-date-title">25 сентября</h3>
       <div class="moods">
@@ -42,32 +36,35 @@
       </div>
     </div>
 
-    <!-- Список дочерних карточек дня -->
+    <!-- Дочерние карточки дня -->
     <div id="cards-container" class="cards-container"></div>
 
-    <!-- Кнопка добавления новой карточки в текущий день -->
+    <!-- Кнопка добавления карточки (+) -->
     <button id="add-card-btn" class="fab-btn">+</button>
-  </div>
 
-  <!-- МЕНЮ (БОКОВАЯ ШТОРКА) -->
-  <div id="menu-overlay" class="overlay hidden">
-    <div class="drawer">
-      <div class="drawer-header">
-        <h3>Меню</h3>
-        <button id="close-menu-btn" class="icon-btn">✕</button>
-      </div>
-      <div class="drawer-content">
-        <button id="export-btn" class="menu-action-btn">📥 Скачать бэкап</button>
-        <label class="menu-action-btn">
-          📤 Загрузить файл
+    <!-- ВСПЛЫВАЮЩЕЕ КРУГОВОЕ МЕНЮ (Floating Radial Menu) -->
+    <div class="radial-menu-container">
+      <button id="radial-toggle-btn" class="radial-main-btn">
+        <span class="bar bar1"></span>
+        <span class="bar bar2"></span>
+        <span class="bar bar3"></span>
+      </button>
+
+      <div id="radial-options" class="radial-options hidden">
+        <!-- Кнопка AI -->
+        <button id="opt-ai" class="radial-item" title="Задать вопрос AI">🤖</button>
+        <!-- Кнопка Скачать бэкап -->
+        <button id="opt-export" class="radial-item" title="Скачать бэкап">📥</button>
+        <!-- Кнопка Загрузить бэкап -->
+        <label class="radial-item" title="Загрузить файл">
+          📤
           <input type="file" id="import-file" accept=".json" style="display: none;">
         </label>
-        <button id="ai-chat-btn" class="menu-action-btn ai-btn">🤖 AI Чат / Вопросы</button>
       </div>
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО ДЛЯ СОЗДАНИЯ / РЕДАКТИРОВАНИЯ КАРТОЧКИ -->
+  <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ / РЕДАКТИРОВАНИЯ КАРТОЧКИ -->
   <div id="editor-overlay" class="overlay hidden">
     <div class="modal">
       <div class="modal-header">
@@ -78,7 +75,6 @@
       <input type="text" id="card-topic-input" placeholder="Тема / Заголовок...">
       <textarea id="card-desc-input" placeholder="Описание..."></textarea>
 
-      <!-- Блок загрузки и галереи фото -->
       <div class="photo-section">
         <label class="photo-add-btn">
           📷 Добавить фото
@@ -94,19 +90,17 @@
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО AI ЧАТА -->
+  <!-- МОДАЛЬНОЕ ОКНО AI ВОПРОСА -->
   <div id="ai-overlay" class="overlay hidden">
     <div class="modal ai-modal">
       <div class="modal-header">
-        <h3>🤖 AI Ассистент</h3>
+        <h3>🤖 AI Вопрос по записям</h3>
         <button id="close-ai-btn" class="icon-btn">✕</button>
       </div>
-      <div id="ai-messages" class="ai-messages">
-        <div class="msg ai">Привет! Напиши мне любой вопрос по твоим заметкам.</div>
-      </div>
-      <div class="ai-input-bar">
-        <input type="text" id="ai-input" placeholder="Задай вопрос...">
-        <button id="ai-send-btn">➔</button>
+      <div class="ai-box">
+        <textarea id="ai-question-input" placeholder="Задай любой вопрос по своим карточкам (например: «Что я делал в прошлый вторник?»)..."></textarea>
+        <button id="ai-ask-btn" class="save-btn">Спросить AI</button>
+        <div id="ai-response-area" class="ai-response hidden"></div>
       </div>
     </div>
   </div>
