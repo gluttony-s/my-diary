@@ -374,10 +374,10 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// УМНЫЙ AI-ПОМОЩНИК ЧАТ
+// УМНЫЙ AI-ПОМОЩНИК (OpenRouter API - Работает в РФ без VPN)
 const keyInput = document.getElementById('ai-key-input');
-keyInput.value = localStorage.getItem('gemini_api_key') || '';
-keyInput.onchange = () => localStorage.setItem('gemini_api_key', keyInput.value.trim());
+keyInput.value = localStorage.getItem('openrouter_api_key') || '';
+keyInput.onchange = () => localStorage.setItem('openrouter_api_key', keyInput.value.trim());
 
 const responseArea = document.getElementById('ai-response-area');
 const aiQuestionInput = document.getElementById('ai-question-input');
@@ -423,7 +423,6 @@ function renderChat() {
     responseArea.appendChild(msgDiv);
   });
 
-  // Прокрутка вниз
   responseArea.scrollTop = responseArea.scrollHeight;
 }
 
@@ -441,21 +440,19 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   const apiKey = keyInput.value.trim();
 
   if (!apiKey) {
-    alert('Пожалуйста, введи API ключ Gemini.');
+    alert('Введи API ключ OpenRouter (sk-or-v1-...).');
     return;
   }
 
   if (!query) return;
 
-  // Добавляем вопрос пользователя в историю
   chatHistory.push({ role: 'user', text: query });
   aiQuestionInput.value = '';
   
-  // Создаем сообщение-заглушку "Думаю..."
-  chatHistory.push({ role: 'model', text: 'Анализирую записи...' });
+  chatHistory.push({ role: 'assistant', text: 'Анализирую записи...' });
   renderChat();
 
-  // Собираем текст всех карточек блокнота
+  // Собираем контекст дневника
   let diaryContext = "";
   Object.keys(notes).forEach(date => {
     const day = notes[date];
@@ -474,62 +471,62 @@ document.getElementById('ai-ask-btn').onclick = async () => {
     return;
   }
 
-  // Формируем историю сообщений в формате Google Gemini API
-  const contentsPayload = [];
-  
-  // Добавляем прошлые сообщения (без статуса "Думаю...")
-  for (let i = 0; i < chatHistory.length - 1; i++) {
-    const item = chatHistory[i];
-    contentsPayload.push({
-      role: item.role === 'user' ? 'user' : 'model',
-      parts: [{ text: item.text }]
-    });
-  }
-
-  // Системная инструкция с контекстом дневника
-  const systemInstruction = {
-    parts: [{
-      text: `Ты персональный ассистент по личным записям дневника. 
+  // Формируем историю сообщений под OpenAI-стандарт
+  const messagesPayload = [
+    {
+      role: 'system',
+      content: `Ты персональный ассистент по личным записям дневника. 
 Вот вся история записей пользователя из дневника:
 ${diaryContext}
 
 Используй эту информацию, чтобы точно и кратко отвечать на вопросы пользователя.`
-    }]
-  };
+    }
+  ];
 
-  // Актуальный список моделей
+  // Добавляем историю предыдущих диалогов (без последнего статуса "Анализирую...")
+  for (let i = 0; i < chatHistory.length - 1; i++) {
+    const item = chatHistory[i];
+    messagesPayload.push({
+      role: item.role === 'user' ? 'user' : 'assistant',
+      content: item.text
+    });
+  }
+
+  // Список доступных и быстро работающих моделей OpenRouter
   const modelsToTry = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-flash'
+    'deepseek/deepseek-chat',
+    'google/gemini-2.0-flash-001',
+    'meta-llama/llama-3.3-70b-instruct'
   ];
 
   let aiReplyText = null;
 
   for (const model of modelsToTry) {
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          systemInstruction: systemInstruction,
-          contents: contentsPayload
+          model: model,
+          messages: messagesPayload
         })
       });
 
       const data = await res.json();
 
-      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        aiReplyText = data.candidates[0].content.parts[0].text;
+      if (data.choices && data.choices[0]?.message?.content) {
+        aiReplyText = data.choices[0].message.content;
         break;
       }
     } catch (e) {
-      // Переходим к следующей модели при ошибке
+      // При ошибке пробуем следующую модель
     }
   }
 
-  // Обновляем ответ AI в чате
-  chatHistory[chatHistory.length - 1].text = aiReplyText || 'Не удалось получить ответ. Проверь API ключ и VPN.';
+  chatHistory[chatHistory.length - 1].text = aiReplyText || 'Не удалось получить ответ. Проверь баланс/ключ на OpenRouter.';
   renderChat();
 };
 
