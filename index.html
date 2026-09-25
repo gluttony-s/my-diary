@@ -41,14 +41,14 @@
       </div>
     </div>
 
-    <!-- Основной контент (Строгий порядок) -->
+    <!-- Основной контент -->
     <main class="day-content">
       <!-- 1. ОСНОВНОЕ ОКНО -->
       <div class="main-note-section">
         <textarea id="main-note-input" placeholder="Как прошёл твой день? Запиши главные мысли..."></textarea>
       </div>
 
-      <!-- 2. ПОДТЕМЫ (Блоки с названием и описанием) -->
+      <!-- 2. ПОДТЕМЫ -->
       <div id="subtopics-container" class="subtopics-container"></div>
 
       <!-- 3. ЗАДАЧИ -->
@@ -73,7 +73,6 @@
 
     <!-- НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ -->
     <div class="floating-controls">
-      <!-- ПЛЮСИК И ВСПЛЫВАЮЩИЕ КРУЖОЧКИ -->
       <div class="add-menu-wrapper">
         <div id="plus-options" class="plus-options hidden">
           <button id="opt-add-topic" class="circle-btn opt-topic" title="Добавить подтему">T</button>
@@ -82,7 +81,6 @@
         <button id="add-main-btn" class="circle-btn main-plus-btn">+</button>
       </div>
 
-      <!-- НАСТРОЙКИ (⚙️) -->
       <div class="radial-menu">
         <button id="radial-toggle-btn" class="circle-btn settings-btn">⚙️</button>
         <div id="radial-options" class="radial-options hidden">
@@ -95,12 +93,12 @@
     </div>
   </div>
 
-  <!-- Модальное окно создания Подтемы / Задачи -->
+  <!-- Модальное окно -->
   <div id="modal-overlay" class="overlay hidden">
     <div class="modal-card">
       <h3 id="modal-title">Новая подтема</h3>
-      <input type="text" id="modal-input-title" placeholder="Название (например: Тренировка)...">
-      <textarea id="modal-input-body" placeholder="Описание / детали (необязательно)..." class="hidden"></textarea>
+      <input type="text" id="modal-input-title" placeholder="Название...">
+      <textarea id="modal-input-body" placeholder="Описание..." class="hidden"></textarea>
       <div class="modal-actions">
         <button id="modal-cancel-btn" class="secondary-btn">Отмена</button>
         <button id="modal-save-btn" class="primary-btn">Сохранить</button>
@@ -113,14 +111,17 @@
     <div class="ai-container">
       <div class="ai-header">
         <h3>AI-Ассистент</h3>
-        <button id="close-ai-btn" class="icon-btn">✕</button>
+        <div class="ai-header-controls">
+          <button id="clear-chat-btn" class="text-btn" title="Очистить чат">Очистить</button>
+          <button id="close-ai-btn" class="icon-btn">✕</button>
+        </div>
       </div>
       <div class="ai-key-box">
         <input type="password" id="ai-key-input" placeholder="Введи OpenRouter API ключ (sk-or-v1-...)">
       </div>
       <div id="ai-response-area" class="ai-chat-history"></div>
       <div class="ai-input-box">
-        <input type="text" id="ai-question-input" placeholder="Задай вопрос или попроси проанализировать записи...">
+        <input type="text" id="ai-question-input" placeholder="Задай вопрос...">
         <button id="ai-ask-btn" class="primary-btn">Отправить</button>
       </div>
     </div>
