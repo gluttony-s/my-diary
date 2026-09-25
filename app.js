@@ -392,16 +392,16 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   const responseArea = document.getElementById('ai-response-area');
 
   if (!apiKey) {
-    alert('Пожалуйста, введи API ключ Gemini (он бесплатный на сайте Google AI Studio).');
+    alert('Пожалуйста, введи API ключ Gemini.');
     return;
   }
 
   if (!query) return;
 
-  responseArea.textContent = 'Анализирую все карточки...';
+  responseArea.textContent = 'Анализирую записи...';
   responseArea.classList.remove('hidden');
 
-  // Собираем всё содержимое карточек в единый текст для нейросети
+  // Собираем текст карточек
   let diaryContext = "";
   Object.keys(notes).forEach(date => {
     const day = notes[date];
@@ -438,13 +438,16 @@ ${diaryContext}
     });
 
     const data = await res.json();
-    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+    
+    if (data.error) {
+      responseArea.textContent = `Ошибка API: ${data.error.message || 'Проверь корректность ключа'}`;
+    } else if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
       responseArea.textContent = data.candidates[0].content.parts[0].text;
     } else {
-      responseArea.textContent = 'Не удалось получить ответ. Проверь API ключ (убедись, что нет пробелов).';
+      responseArea.textContent = 'Не удалось получить ответ. Проверь ключ на лишние пробелы.';
     }
   } catch (e) {
-    responseArea.textContent = 'Ошибка сети или неверный API-ключ.';
+    responseArea.textContent = 'Ошибка сети. Если запрос не проходит, убедись, что включен VPN (Google API блокирует прямые запросы из некоторых регионов).';
   }
 };
 
