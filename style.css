@@ -67,7 +67,7 @@ body {
   width: 34px;
   height: 34px;
   cursor: pointer;
-  outline: none;
+  outline: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -142,7 +142,7 @@ body {
   cursor: pointer;
   border-radius: 6px;
   padding: 2px 4px;
-  outline: none;
+  outline: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -367,23 +367,23 @@ body {
 }
 
 /* =======================================================
-   ОБНОВЛЕННЫЕ СТИЛИ КНОПОК ПЛЮСА И НАСТРОЕК
+   ИСПРАВЛЕННЫЙ БЛОК ПЛАВАЮЩИХ КНОПОК И ВЫПАДАЮЩИХ МЕНЮ
    ======================================================= */
 
 .floating-controls {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 24px;
+  right: 24px;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 16px;
   z-index: 50;
 }
 
-/* Базовые стили для всех круглосуточных кнопок управления */
+/* Базовые стили для главных круглосуточных кнопок (Плюс и Настройки) */
 .circle-btn {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 1px solid #3f3f46;
   background: #27272a;
@@ -393,23 +393,23 @@ body {
   justify-content: center;
   cursor: pointer;
   
-  /* УБИРАЕМ СИНИЙ КВАДРАТ И ВЫДЕЛЕНИЕ */
+  /* Убираем рамки и синие квадраты при клике/тапе */
   outline: none !important;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   
-  /* Единая плавная анимация для обеих кнопок */
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
-              background-color 0.3s ease, 
-              border-color 0.3s ease,
-              box-shadow 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  /* Анимация плавности */
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              background-color 0.25s ease, 
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
-/* SVG Иконки внутри кнопок */
+/* SVG Иконки */
 .btn-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
   transition: transform 0.3s ease;
 }
@@ -419,52 +419,96 @@ body {
   transform: translateY(-2px) scale(1.05);
   background-color: #3f3f46;
   border-color: #52525b;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
 }
 
 .circle-btn:hover .icon-settings {
-  transform: rotate(90deg); /* Шестеренка плавно вращается */
+  transform: rotate(90deg); /* Поворот шестеренки при наведении */
 }
 
-/* Физическое нажатие (Active) для обеих кнопок */
+/* Клик (Active) */
 .circle-btn:active {
   transform: translateY(1px) scale(0.94) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
-/* Поворот плюсика при открытии меню */
+/* Анимация плюсика при открытии */
 .main-plus-btn.active {
   transform: rotate(45deg);
   background: #3f3f46;
-  border-color: #52525b;
 }
 
-.main-plus-btn.active:hover {
-  transform: rotate(45deg) scale(1.05);
-}
-
-/* Вращение настроек при активности */
+/* Вращение шестеренки при открытом меню */
 .settings-btn.active .icon-settings {
   transform: rotate(180deg);
 }
 
-.add-menu-wrapper {
+/* Обертки для кнопок и их выпадающих списков */
+.add-menu-wrapper, .radial-menu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- ВЫПАДАЮЩЕЕ МЕНЮ ДЛЯ ПЛЮСИКА --- */
+.plus-options {
+  position: absolute;
+  bottom: 64px; /* Ровно над кнопкой плюса */
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  animation: slideUp 0.2s ease-out;
 }
 
-.plus-options {
+/* --- ВЫПАДАЮЩЕЕ МЕНЮ ДЛЯ НАСТРОЕК (ФИКС СМЕЩЕНИЯ) --- */
+.radial-options {
+  position: absolute;
+  bottom: 64px; /* Ровно над кнопкой настроек */
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   animation: slideUp 0.2s ease-out;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Кнопки внутри выпадающего меню настроек (Робот, Бэкап и т.д.) */
+.radial-opt-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.radial-opt-btn:hover {
+  transform: scale(1.1);
+  background: #27272a;
+}
+
+.radial-opt-btn:active {
+  transform: scale(0.92);
 }
 
 .opt-topic {
@@ -482,51 +526,7 @@ body {
   font-size: 16px;
 }
 
-/* Фикс позиционирования меню настроек */
-.radial-menu {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.radial-options {
-  position: absolute;
-  bottom: calc(100% + 10px); /* Четко привязываем меню к верхнему краю кнопки настроек с отступом 10px */
-  left: 50%;
-  transform: translateX(-50%); /* Идеально центрируем по горизонтали относительно шестеренки */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  z-index: 60;
-}
-
-.radial-opt-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #18181b;
-  border: 1px solid #27272a;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.radial-opt-btn:hover {
-  transform: scale(1.08);
-  background: #27272a;
-}
-
-.radial-opt-btn:active {
-  transform: scale(0.92);
-}
-
+/* Класс для скрытия элементов */
 .hidden {
   display: none !important;
 }
@@ -591,7 +591,7 @@ body {
   padding: 8px 14px;
   cursor: pointer;
   font-size: 13px;
-  outline: none;
+  outline: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -698,7 +698,7 @@ body {
   color: #60a5fa;
 }
 
-/* Форматирование внутри Markdown ответов AI */
+/* Форматирование внутри Markdown */
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
   margin-top: 10px;
   margin-bottom: 6px;
@@ -734,7 +734,7 @@ body {
   overflow-x: auto;
 }
 
-/* Оформление математических формул KaTeX */
+/* Оформление KaTeX */
 .katex-display {
   margin: 12px 0 !important;
   overflow-x: auto;
