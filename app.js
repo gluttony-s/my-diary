@@ -44,7 +44,7 @@ let currentPhotos = [];
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const dayNamesShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-// DOM элементы
+// DOM Элементы
 const monthTitle = document.getElementById('month-title');
 const weekDaysContainer = document.getElementById('week-days');
 const selectedDateTitle = document.getElementById('selected-date-title');
@@ -76,11 +76,10 @@ function getMonday(d) {
   return new Date(date.setDate(diff));
 }
 
-// Отрисовка недельной ленты вместо 30 дней
+// Отрисовка ленты на 7 дней
 function renderWeek() {
   weekDaysContainer.innerHTML = '';
   
-  // Определяем месяц по серединному дню недели
   const midWeekDate = new Date(currentWeekStart);
   midWeekDate.setDate(midWeekDate.getDate() + 3);
   monthTitle.textContent = `${monthNames[midWeekDate.getMonth()]} ${midWeekDate.getFullYear()}`;
@@ -314,7 +313,7 @@ deleteCardBtn.onclick = () => {
 document.getElementById('add-card-btn').onclick = () => openCardEditor(null);
 document.getElementById('close-editor-btn').onclick = () => editorOverlay.classList.add('hidden');
 
-// Переключение недель
+// Листание недель
 document.getElementById('prev-week').onclick = () => {
   currentWeekStart.setDate(currentWeekStart.getDate() - 7);
   renderWeek();
@@ -325,7 +324,7 @@ document.getElementById('next-week').onclick = () => {
   renderWeek();
 };
 
-// АНИМАЦИЯ И ЛОГИКА РАДИАЛЬНОГО МЕНЮ
+// АНИМАЦИЯ РАДИАЛЬНОГО МЕНЮ
 const radialToggleBtn = document.getElementById('radial-toggle-btn');
 const radialOptions = document.getElementById('radial-options');
 
@@ -356,7 +355,7 @@ document.getElementById('import-file').onchange = (event) => {
       notes = { ...notes, ...importedNotes };
       saveStorage(notes);
       selectDate(selectedDateKey, new Date());
-      alert('Данные загружены!');
+      alert('Данные успешно загружены!');
     } catch (err) {
       alert('Ошибка при чтении файла бэкапа.');
     }
@@ -364,7 +363,11 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// ПРОСТОЙ И РАБОЧИЙ AI-ВОПРОС ПО ВСЕМ ЗАПИСЯМ
+// НАСТОЯЩИЙ УМНЫЙ AI-ПОМОЩНИК ЧЕРЕЗ API
+const keyInput = document.getElementById('ai-key-input');
+keyInput.value = localStorage.getItem('gemini_api_key') || '';
+keyInput.onchange = () => localStorage.setItem('gemini_api_key', keyInput.value.trim());
+
 document.getElementById('opt-ai').onclick = () => {
   radialToggleBtn.classList.remove('active');
   radialOptions.classList.add('hidden');
@@ -375,40 +378,67 @@ document.getElementById('opt-ai').onclick = () => {
 
 document.getElementById('close-ai-btn').onclick = () => aiOverlay.classList.add('hidden');
 
-document.getElementById('ai-ask-btn').onclick = () => {
-  const query = document.getElementById('ai-question-input').value.trim().toLowerCase();
+document.getElementById('ai-ask-btn').onclick = async () => {
+  const query = document.getElementById('ai-question-input').value.trim();
+  const apiKey = keyInput.value.trim();
   const responseArea = document.getElementById('ai-response-area');
+
+  if (!apiKey) {
+    alert('Пожалуйста, введи API ключ Gemini (он бесплатный).');
+    return;
+  }
 
   if (!query) return;
 
-  responseArea.textContent = 'Ищу совпадения по карточкам...';
+  responseArea.textContent = 'Анализирую все карточки...';
   responseArea.classList.remove('hidden');
 
-  // Локальный поиск по темам и описаниям всех карточек
-  let foundCards = [];
+  // Собираем всё содержимое карточек в единый текст для нейросети
+  let diaryContext = "";
   Object.keys(notes).forEach(date => {
-    const cards = notes[date].cards || [];
-    cards.forEach(card => {
-      const t = (card.topic || '').toLowerCase();
-      const d = (card.desc || '').toLowerCase();
-      if (t.includes(query) || d.includes(query)) {
-        foundCards.push({ date, topic: card.topic, desc: card.desc });
-      }
-    });
+    const day = notes[date];
+    if (day.cards && day.cards.length > 0) {
+      day.cards.forEach(card => {
+        if (card.topic || card.desc) {
+          diaryContext += `Дата: ${date} | Заголовок: ${card.topic || 'Без темы'} | Описание: ${card.desc || ''}\n`;
+        }
+      });
+    }
   });
 
-  setTimeout(() => {
-    if (foundCards.length === 0) {
-      responseArea.textContent = `По запросу "${query}" совпадений в карточках не найдено.`;
+  if (!diaryContext) {
+    responseArea.textContent = 'У тебя пока нет созданных карточек для анализа.';
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Ты персональный ассистент по личным записям дневника. 
+Вот вся история записей пользователя:
+${diaryContext}
+
+Ответь кратко и точно на вопрос пользователя, опираясь строго на эти данные.
+Вопрос: "${query}"`
+          }]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+      responseArea.textContent = data.candidates[0].content.parts[0].text;
     } else {
-      let resText = `Найдено записей: ${foundCards.length}\n\n`;
-      foundCards.forEach(item => {
-        resText += `📅 ${item.date}\n• ${item.topic || 'Без темы'}: ${item.desc || ''}\n\n`;
-      });
-      responseArea.textContent = resText;
+      responseArea.textContent = 'Не удалось получить ответ. Проверь API ключ.';
     }
-  }, 400);
+  } catch (e) {
+    responseArea.textContent = 'Ошибка сети или неверный API-ключ.';
+  }
 };
 
-// Старт
+// Инициализация при старте
 selectDate(selectedDateKey, new Date());
