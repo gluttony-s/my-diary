@@ -41,6 +41,9 @@ let currentWeekStart = getMonday(new Date());
 let editingCardId = null;
 let currentPhotos = [];
 
+// Массив для хранения диалога с ИИ в текущей сессии
+let chatHistory = [];
+
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const dayNamesShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -371,25 +374,71 @@ document.getElementById('import-file').onchange = (event) => {
   reader.readAsText(file);
 };
 
-// УМНЫЙ AI-ПОМОЩНИК ЧЕРЕЗ GEMINI API
+// УМНЫЙ AI-ПОМОЩНИК ЧАТ
 const keyInput = document.getElementById('ai-key-input');
 keyInput.value = localStorage.getItem('gemini_api_key') || '';
 keyInput.onchange = () => localStorage.setItem('gemini_api_key', keyInput.value.trim());
 
+const responseArea = document.getElementById('ai-response-area');
+const aiQuestionInput = document.getElementById('ai-question-input');
+
 document.getElementById('opt-ai').onclick = () => {
   radialToggleBtn.classList.remove('active');
   radialOptions.classList.add('hidden');
-  document.getElementById('ai-response-area').classList.add('hidden');
-  document.getElementById('ai-question-input').value = '';
   aiOverlay.classList.remove('hidden');
 };
 
 document.getElementById('close-ai-btn').onclick = () => aiOverlay.classList.add('hidden');
 
+// Отрисовка ленты сообщений чата
+function renderChat() {
+  responseArea.innerHTML = '';
+  responseArea.classList.remove('hidden');
+
+  if (chatHistory.length === 0) {
+    responseArea.innerHTML = '<div style="color:#71717a; font-size:13px; text-align:center;">Задай вопрос по своим записям...</div>';
+    return;
+  }
+
+  chatHistory.forEach(msg => {
+    const msgDiv = document.createElement('div');
+    msgDiv.style.marginBottom = '12px';
+    msgDiv.style.padding = '8px 12px';
+    msgDiv.style.borderRadius = '10px';
+    msgDiv.style.fontSize = '14px';
+    msgDiv.style.lineHeight = '1.4';
+
+    if (msg.role === 'user') {
+      msgDiv.style.backgroundColor = '#27272a';
+      msgDiv.style.color = '#ffffff';
+      msgDiv.style.alignSelf = 'flex-end';
+      msgDiv.innerHTML = `<b>Ты:</b> ${escapeHtml(msg.text)}`;
+    } else {
+      msgDiv.style.backgroundColor = '#18181b';
+      msgDiv.style.color = '#d4d4d8';
+      msgDiv.style.border = '1px solid #27272a';
+      msgDiv.innerHTML = `<b>AI:</b> ${escapeHtml(msg.text)}`;
+    }
+
+    responseArea.appendChild(msgDiv);
+  });
+
+  // Прокрутка вниз
+  responseArea.scrollTop = responseArea.scrollHeight;
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 document.getElementById('ai-ask-btn').onclick = async () => {
-  const query = document.getElementById('ai-question-input').value.trim();
+  const query = aiQuestionInput.value.trim();
   const apiKey = keyInput.value.trim();
-  const responseArea = document.getElementById('ai-response-area');
 
   if (!apiKey) {
     alert('Пожалуйста, введи API ключ Gemini.');
@@ -398,10 +447,15 @@ document.getElementById('ai-ask-btn').onclick = async () => {
 
   if (!query) return;
 
-  responseArea.textContent = 'Анализирую записи...';
-  responseArea.classList.remove('hidden');
+  // Добавляем вопрос пользователя в историю
+  chatHistory.push({ role: 'user', text: query });
+  aiQuestionInput.value = '';
+  
+  // Создаем сообщение-заглушку "Думаю..."
+  chatHistory.push({ role: 'model', text: 'Анализирую записи...' });
+  renderChat();
 
-  // Собираем текст карточек
+  // Собираем текст всех карточек блокнота
   let diaryContext = "";
   Object.keys(notes).forEach(date => {
     const day = notes[date];
@@ -415,18 +469,39 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   });
 
   if (!diaryContext) {
-    responseArea.textContent = 'У тебя пока нет созданных карточек для анализа.';
+    chatHistory[chatHistory.length - 1].text = 'У тебя пока нет созданных карточек для анализа.';
+    renderChat();
     return;
   }
 
-  const promptText = `Ты персональный ассистент по личным записям дневника. 
-Вот вся история записей пользователя:
+  // Формируем историю диалога для отправки в Gemini
+  const contentsPayload = [
+    {
+      role: 'user',
+      parts: [{
+        text: `Ты персональный ассистент по личным записям дневника. 
+Вот вся история записей пользователя из дневника:
 ${diaryContext}
 
-Ответь кратко и точно на вопрос пользователя, опираясь строго на эти данные.
-Вопрос: "${query}"`;
+Используй эту информацию, чтобы отвечать на вопросы пользователя.`
+      }]
+    },
+    {
+      role: 'model',
+      parts: [{ text: 'Понял, я ознакомился со всеми твоими записями и готов отвечать на вопросы!' }]
+    }
+  ];
 
-  // Список моделей по приоритету (начиная с указанной в ошибке)
+  // Добавляем предыдущие диалоги (кроме последнего временно сделанного "Думаю...")
+  for (let i = 0; i < chatHistory.length - 1; i++) {
+    const item = chatHistory[i];
+    contentsPayload.push({
+      role: item.role === 'user' ? 'user' : 'model',
+      parts: [{ text: item.text }]
+    });
+  }
+
+  // Список актуальных моделей Google Gemini
   const modelsToTry = [
     'gemini-3.8-flash',
     'gemini-flash',
@@ -434,36 +509,34 @@ ${diaryContext}
     'gemini-1.5-flash'
   ];
 
-  let lastError = null;
+  let aiReplyText = null;
 
   for (const model of modelsToTry) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: promptText }]
-          }]
-        })
+        body: JSON.stringify({ contents: contentsPayload })
       });
 
       const data = await res.json();
 
       if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        responseArea.textContent = data.candidates[0].content.parts[0].text;
-        return;
+        aiReplyText = data.candidates[0].content.parts[0].text;
+        break;
       }
 
       if (data.error) {
-        lastError = data.error.message;
+        aiReplyText = `Ошибка API: ${data.error.message}`;
       }
     } catch (e) {
-      lastError = 'Ошибка сети / VPN';
+      aiReplyText = 'Ошибка сети / VPN. Убедись, что соединение стабильно.';
     }
   }
 
-  responseArea.textContent = `Ошибка API: ${lastError || 'Не удалось связаться с Gemini API. Проверь ключ и подключение.'}`;
+  // Обновляем ответ AI в чате
+  chatHistory[chatHistory.length - 1].text = aiReplyText || 'Не удалось получить ответ.';
+  renderChat();
 };
 
 // Инициализация при старте
