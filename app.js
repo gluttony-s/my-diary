@@ -1,20 +1,6 @@
 function loadStorage() {
   try {
-    let rawData = JSON.parse(localStorage.getItem('my_simple_diary')) || {};
-    
-    // Миграция старых данных в новый формат (поддержка типов: 'task' / 'heading')
-    Object.keys(rawData).forEach(dateKey => {
-      const item = rawData[dateKey];
-      if (item && item.todos) {
-        item.todos = item.todos.map(t => {
-          if (typeof t === 'string') return { text: t, done: false, type: 'task' };
-          if (!t.type) t.type = 'task';
-          return t;
-        });
-      }
-    });
-
-    return rawData;
+    return JSON.parse(localStorage.getItem('my_simple_diary')) || {};
   } catch (e) {
     return {};
   }
@@ -32,6 +18,7 @@ let notes = loadStorage();
 let selectedDateKey = getFormattedKey(new Date());
 let currentWeekStart = getMonday(new Date());
 let chatHistory = [];
+let currentModalType = 'subtopic';
 
 const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const dayNamesShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -45,18 +32,30 @@ const selectedDateTitle = document.getElementById('selected-date-title');
 const moodBtns = document.querySelectorAll('.mood-btn');
 
 const mainNoteInput = document.getElementById('main-note-input');
-const newTodoInput = document.getElementById('new-todo-input');
+const subtopicsContainer = document.getElementById('subtopics-container');
 const todoList = document.getElementById('todo-list');
 const todosCounter = document.getElementById('todos-counter');
 const photoList = document.getElementById('photo-list');
 
-// Элементы плюсика
-const addTriggerBtn = document.getElementById('add-trigger-btn');
+// Управление плюс-меню
+const addMainBtn = document.getElementById('add-main-btn');
 const plusOptions = document.getElementById('plus-options');
-const addHeadingBtn = document.getElementById('add-heading-btn');
-const addTaskBtn = document.getElementById('add-task-btn');
+const optAddTopic = document.getElementById('opt-add-topic');
+const optAddTask = document.getElementById('opt-add-task');
 
+// Модальное окно
+const modalOverlay = document.getElementById('modal-overlay');
+const modalTitle = document.getElementById('modal-title');
+const modalInputTitle = document.getElementById('modal-input-title');
+const modalInputBody = document.getElementById('modal-input-body');
+const modalSaveBtn = document.getElementById('modal-save-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+// AI
 const aiOverlay = document.getElementById('ai-overlay');
+const keyInput = document.getElementById('ai-key-input');
+const responseArea = document.getElementById('ai-response-area');
+const aiQuestionInput = document.getElementById('ai-question-input');
 
 function getFormattedKey(date) {
   const y = date.getFullYear();
@@ -72,10 +71,8 @@ function getMonday(d) {
   return new Date(date.setDate(diff));
 }
 
-// Отрисовка недели
 function renderWeek() {
   weekDaysContainer.innerHTML = '';
-  
   const selectedDateObj = new Date(selectedDateKey + 'T00:00:00');
   monthTitle.textContent = `${monthNames[selectedDateObj.getMonth()]} ${selectedDateObj.getFullYear()} 📅`;
   calendarPicker.value = selectedDateKey;
@@ -90,7 +87,7 @@ function renderWeek() {
     if (key === selectedDateKey) cell.classList.add('selected');
 
     const dayData = notes[key];
-    if (dayData && (dayData.text || (dayData.todos && dayData.todos.length > 0) || dayData.mood)) {
+    if (dayData && (dayData.text || (dayData.subtopics && dayData.subtopics.length > 0) || (dayData.todos && dayData.todos.length > 0) || dayData.mood)) {
       cell.classList.add('has-note');
     }
 
@@ -120,7 +117,7 @@ function selectDate(key, dateObj) {
 
 function loadDayData() {
   if (!notes[selectedDateKey]) {
-    notes[selectedDateKey] = { mood: '', text: '', todos: [], photos: [] };
+    notes[selectedDateKey] = { mood: '', text: '', subtopics: [], todos: [], photos: [] };
   }
 
   const dayData = notes[selectedDateKey];
@@ -131,12 +128,13 @@ function loadDayData() {
 
   mainNoteInput.value = dayData.text || '';
 
+  renderSubtopics();
   renderTodos();
   renderPhotos();
 }
 
 mainNoteInput.oninput = () => {
-  if (!notes[selectedDateKey]) notes[selectedDateKey] = { mood: '', text: '', todos: [], photos: [] };
+  ensureStorageStructure();
   notes[selectedDateKey].text = mainNoteInput.value;
   saveStorage(notes);
   renderWeek();
@@ -144,7 +142,7 @@ mainNoteInput.oninput = () => {
 
 moodBtns.forEach(btn => {
   btn.onclick = () => {
-    if (!notes[selectedDateKey]) notes[selectedDateKey] = { mood: '', text: '', todos: [], photos: [] };
+    ensureStorageStructure();
     const currentMood = notes[selectedDateKey].mood;
     notes[selectedDateKey].mood = btn.dataset.mood === currentMood ? '' : btn.dataset.mood;
     saveStorage(notes);
@@ -152,100 +150,172 @@ moodBtns.forEach(btn => {
   };
 });
 
-// Управление плюс-меню
-addTriggerBtn.onclick = () => {
-  plusOptions.classList.toggle('hidden');
-  addTriggerBtn.classList.toggle('active');
-};
-
-addHeadingBtn.onclick = () => createItem('heading');
-addTaskBtn.onclick = () => createItem('task');
-
-newTodoInput.onkeypress = (e) => {
-  if (e.key === 'Enter') {
-    createItem('task'); // По умолчанию Enter создает задачу
-  }
-};
-
-function createItem(type) {
-  const text = newTodoInput.value.trim();
-  if (!text) return;
-
-  if (!notes[selectedDateKey]) notes[selectedDateKey] = { mood: '', text: '', todos: [], photos: [] };
+function ensureStorageStructure() {
+  if (!notes[selectedDateKey]) notes[selectedDateKey] = {};
+  if (!notes[selectedDateKey].subtopics) notes[selectedDateKey].subtopics = [];
   if (!notes[selectedDateKey].todos) notes[selectedDateKey].todos = [];
-
-  notes[selectedDateKey].todos.push({
-    text,
-    done: false,
-    type: type // 'task' или 'heading'
-  });
-
-  newTodoInput.value = '';
-  plusOptions.classList.add('hidden');
-  addTriggerBtn.classList.remove('active');
-
-  saveStorage(notes);
-  renderWeek();
+  if (!notes[selectedDateKey].photos) notes[selectedDateKey].photos = [];
 }
 
-// Отрисовка списка задач и тем
+// Плюсик и создание задач / подтем
+addMainBtn.onclick = () => {
+  addMainBtn.classList.toggle('active');
+  plusOptions.classList.toggle('hidden');
+};
+
+optAddTopic.onclick = () => openModal('subtopic');
+optAddTask.onclick = () => openModal('task');
+
+function openModal(type) {
+  currentModalType = type;
+  plusOptions.classList.add('hidden');
+  addMainBtn.classList.remove('active');
+
+  modalInputTitle.value = '';
+  modalInputBody.value = '';
+
+  if (type === 'subtopic') {
+    modalTitle.textContent = 'Новая подтема';
+    modalInputTitle.placeholder = 'Название подтемы...';
+    modalInputBody.classList.remove('hidden');
+  } else {
+    modalTitle.textContent = 'Новая задача';
+    modalInputTitle.placeholder = 'Текст задачи...';
+    modalInputBody.classList.add('hidden');
+  }
+
+  modalOverlay.classList.remove('hidden');
+  modalInputTitle.focus();
+}
+
+modalCancelBtn.onclick = () => modalOverlay.classList.add('hidden');
+
+modalSaveBtn.onclick = () => {
+  const title = modalInputTitle.value.trim();
+  const body = modalInputBody.value.trim();
+
+  if (!title) return;
+
+  ensureStorageStructure();
+
+  if (currentModalType === 'subtopic') {
+    notes[selectedDateKey].subtopics.push({ title, body, open: false });
+  } else {
+    notes[selectedDateKey].todos.push({ text: title, done: false });
+  }
+
+  saveStorage(notes);
+  modalOverlay.classList.add('hidden');
+  renderWeek();
+};
+
+// 2. ПОДТЕМЫ
+function renderSubtopics() {
+  subtopicsContainer.innerHTML = '';
+  const subtopics = notes[selectedDateKey]?.subtopics || [];
+
+  subtopics.forEach((sub, idx) => {
+    const card = document.createElement('div');
+    card.className = `subtopic-card ${sub.open ? 'expanded' : ''}`;
+
+    const header = document.createElement('div');
+    header.className = 'subtopic-header';
+
+    const title = document.createElement('span');
+    title.className = 'subtopic-title';
+    title.textContent = sub.title;
+
+    const actions = document.createElement('div');
+    actions.className = 'subtopic-actions';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'subtopic-arrow';
+    arrow.textContent = sub.open ? '▲' : '▼';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = '✕';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      notes[selectedDateKey].subtopics.splice(idx, 1);
+      saveStorage(notes);
+      renderWeek();
+    };
+
+    actions.appendChild(arrow);
+    actions.appendChild(delBtn);
+
+    header.appendChild(title);
+    header.appendChild(actions);
+
+    header.onclick = () => {
+      sub.open = !sub.open;
+      saveStorage(notes);
+      renderSubtopics();
+    };
+
+    card.appendChild(header);
+
+    if (sub.open) {
+      const body = document.createElement('div');
+      body.className = 'subtopic-body';
+
+      const textarea = document.createElement('textarea');
+      textarea.value = sub.body || '';
+      textarea.placeholder = 'Детали и описание подтемы...';
+      textarea.oninput = () => {
+        sub.body = textarea.value;
+        saveStorage(notes);
+      };
+
+      body.appendChild(textarea);
+      card.appendChild(body);
+    }
+
+    subtopicsContainer.appendChild(card);
+  });
+}
+
+// 3. ЗАДАЧИ
 function renderTodos() {
   todoList.innerHTML = '';
-  const dayTodos = notes[selectedDateKey]?.todos || [];
+  const todos = notes[selectedDateKey]?.todos || [];
 
-  let tasksCount = 0;
   let completedCount = 0;
 
-  dayTodos.forEach((todo, idx) => {
-    const isHeading = todo.type === 'heading';
+  todos.forEach((todo, idx) => {
+    if (todo.done) completedCount++;
 
-    if (!isHeading) {
-      tasksCount++;
-      if (todo.done) completedCount++;
-    }
+    const item = document.createElement('div');
+    item.className = `todo-item ${todo.done ? 'done' : ''}`;
 
-    const itemDiv = document.createElement('div');
-    itemDiv.className = `todo-item ${isHeading ? 'item-heading' : 'item-task'} ${todo.done ? 'done' : ''}`;
+    const checkbox = document.createElement('div');
+    checkbox.className = `custom-checkbox ${todo.done ? 'checked' : ''}`;
+    checkbox.onclick = () => toggleTodo(idx);
 
-    if (isHeading) {
-      // Оформление темы / оглавления
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'heading-text';
-      titleSpan.textContent = todo.text;
-      itemDiv.appendChild(titleSpan);
-    } else {
-      // Оформление интерактивной задачи
-      const customCheckbox = document.createElement('div');
-      customCheckbox.className = `custom-checkbox ${todo.done ? 'checked' : ''}`;
-      customCheckbox.onclick = () => toggleTodo(idx);
+    const text = document.createElement('span');
+    text.className = 'todo-text';
+    text.textContent = todo.text;
+    text.onclick = () => toggleTodo(idx);
 
-      const taskSpan = document.createElement('span');
-      taskSpan.className = 'task-text';
-      taskSpan.textContent = todo.text;
-      taskSpan.onclick = () => toggleTodo(idx);
-
-      itemDiv.appendChild(customCheckbox);
-      itemDiv.appendChild(taskSpan);
-    }
-
-    // Кнопка удаления
     const delBtn = document.createElement('button');
-    delBtn.className = 'del-todo';
+    delBtn.className = 'del-btn';
     delBtn.textContent = '✕';
     delBtn.onclick = (e) => {
       e.stopPropagation();
       deleteTodo(idx);
     };
 
-    itemDiv.appendChild(delBtn);
-    todoList.appendChild(itemDiv);
+    item.appendChild(checkbox);
+    item.appendChild(text);
+    item.appendChild(delBtn);
+    todoList.appendChild(item);
   });
 
-  todosCounter.textContent = `${completedCount}/${tasksCount}`;
+  todosCounter.textContent = `${completedCount}/${todos.length}`;
 }
 
 function toggleTodo(idx) {
-  if (notes[selectedDateKey].todos[idx].type === 'heading') return;
   notes[selectedDateKey].todos[idx].done = !notes[selectedDateKey].todos[idx].done;
   saveStorage(notes);
   renderWeek();
@@ -257,7 +327,7 @@ function deleteTodo(idx) {
   renderWeek();
 }
 
-// Управление фото
+// 4. ФОТОГРАФИИ
 document.getElementById('photo-input').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -279,9 +349,7 @@ document.getElementById('photo-input').onchange = (e) => {
 
       const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
       
-      if (!notes[selectedDateKey]) notes[selectedDateKey] = { mood: '', text: '', todos: [], photos: [] };
-      if (!notes[selectedDateKey].photos) notes[selectedDateKey].photos = [];
-
+      ensureStorageStructure();
       notes[selectedDateKey].photos.push(compressedBase64);
       saveStorage(notes);
       renderWeek();
@@ -316,7 +384,7 @@ function renderPhotos() {
   });
 }
 
-// Календарь
+// Календарь и переключение недель
 monthSelector.onclick = () => {
   if (typeof calendarPicker.showPicker === 'function') {
     calendarPicker.showPicker();
@@ -348,7 +416,7 @@ document.getElementById('next-week').onclick = () => {
   selectDate(selectedDateKey, newSelectedDate);
 };
 
-// Нижнее меню
+// Настройки
 const radialToggleBtn = document.getElementById('radial-toggle-btn');
 const radialOptions = document.getElementById('radial-options');
 
@@ -374,61 +442,61 @@ document.getElementById('import-file').onchange = (event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const importedNotes = JSON.parse(e.target.result);
-      notes = { ...notes, ...importedNotes };
+      notes = JSON.parse(e.target.result);
       saveStorage(notes);
       selectDate(selectedDateKey, new Date(selectedDateKey + 'T00:00:00'));
       alert('Данные загружены!');
     } catch (err) {
-      alert('Ошибка при импорте.');
+      alert('Ошибка файла.');
     }
   };
   reader.readAsText(file);
 };
 
-// AI-Чат
-const keyInput = document.getElementById('ai-key-input');
+// AI-ЧАТ С КРАСИВЫМ РЕНДЕРИНГОМ MARKDOWN И LATEX
 keyInput.value = localStorage.getItem('openrouter_api_key') || '';
 keyInput.onchange = () => localStorage.setItem('openrouter_api_key', keyInput.value.trim());
-
-const responseArea = document.getElementById('ai-response-area');
-const aiQuestionInput = document.getElementById('ai-question-input');
 
 document.getElementById('opt-ai').onclick = () => {
   radialToggleBtn.classList.remove('active');
   radialOptions.classList.add('hidden');
   aiOverlay.classList.remove('hidden');
+  renderChat();
 };
 
 document.getElementById('close-ai-btn').onclick = () => aiOverlay.classList.add('hidden');
 
 function renderChat() {
   responseArea.innerHTML = '';
-  responseArea.classList.remove('hidden');
 
   if (chatHistory.length === 0) {
-    responseArea.innerHTML = '<div style="color:#71717a; font-size:13px; text-align:center;">Спроси о чем угодно или проанализируй записи...</div>';
+    responseArea.innerHTML = '<div style="color:#71717a; font-size:13px; text-align:center; padding: 20px;">Задай любой вопрос или попроси проанализировать дневник...</div>';
     return;
   }
 
   chatHistory.forEach(msg => {
     const msgDiv = document.createElement('div');
-    msgDiv.style.marginBottom = '12px';
-    msgDiv.style.padding = '8px 12px';
-    msgDiv.style.borderRadius = '10px';
-    msgDiv.style.fontSize = '14px';
-    msgDiv.style.lineHeight = '1.4';
+    msgDiv.className = `chat-msg ${msg.role === 'user' ? 'user-msg' : 'ai-msg'}`;
 
     if (msg.role === 'user') {
-      msgDiv.style.backgroundColor = '#27272a';
-      msgDiv.style.color = '#ffffff';
-      msgDiv.style.alignSelf = 'flex-end';
       msgDiv.innerHTML = `<b>Ты:</b> ${escapeHtml(msg.text)}`;
     } else {
-      msgDiv.style.backgroundColor = '#18181b';
-      msgDiv.style.color = '#d4d4d8';
-      msgDiv.style.border = '1px solid #27272a';
-      msgDiv.innerHTML = `<b>AI:</b> ${escapeHtml(msg.text)}`;
+      // Рендерим Markdown
+      const rawHtml = (typeof marked !== 'undefined') ? marked.parse(msg.text) : escapeHtml(msg.text);
+      msgDiv.innerHTML = `<div class="ai-role-label"><b>AI:</b></div><div class="markdown-body">${rawHtml}</div>`;
+
+      // Рендерим математические формулы LaTeX (KaTeX)
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(msgDiv, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\[', right: '\\]', display: true},
+            {left: '\\(', right: '\\)', display: false}
+          ],
+          throwOnError: false
+        });
+      }
     }
 
     responseArea.appendChild(msgDiv);
@@ -462,41 +530,46 @@ document.getElementById('ai-ask-btn').onclick = async () => {
   chatHistory.push({ role: 'assistant', text: 'Думаю...' });
   renderChat();
 
+  // Собираем контекст дневника
   let diaryContext = "";
   Object.keys(notes).forEach(date => {
     const day = notes[date];
     const hasText = day.text && day.text.trim().length > 0;
+    const hasTopics = day.subtopics && day.subtopics.length > 0;
     const hasTodos = day.todos && day.todos.length > 0;
 
-    if (hasText || hasTodos) {
+    if (hasText || hasTopics || hasTodos) {
       diaryContext += `=== Дата: ${date} ===\n`;
-      if (hasText) diaryContext += `Запись: ${day.text}\n`;
+      if (hasText) diaryContext += `Главная запись: ${day.text}\n`;
+      if (hasTopics) {
+        day.subtopics.forEach(s => {
+          diaryContext += `Подтема [${s.title}]: ${s.body || 'нет описания'}\n`;
+        });
+      }
       if (hasTodos) {
-        diaryContext += `План/Задачи:\n`;
+        diaryContext += `Задачи:\n`;
         day.todos.forEach(t => {
-          if (t.type === 'heading') {
-            diaryContext += `\n[ТЕМА: ${t.text}]\n`;
-          } else {
-            diaryContext += `- [${t.done ? 'X' : ' '}] ${t.text}\n`;
-          }
+          diaryContext += `- [${t.done ? 'X' : ' '}] ${t.text}\n`;
         });
       }
       diaryContext += `\n`;
     }
   });
 
-  const messagesPayload = [
-    {
-      role: 'system',
-      content: `Ты универсальный и умный ИИ-ассистент. 
-Ты можешь отвечать на абсолютно любые вопросы пользователя (программирование, наука, фитнес, общение).
+  const now = new Date();
+  const currentDateStr = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const currentYear = now.getFullYear();
 
-Контекст личного дневника пользователя:
-${diaryContext || 'Записей в дневнике нет.'}
+  const systemPrompt = `Ты умный и полезный ИИ-ассистент.
+ТЕКУЩАЯ ДАТА: ${currentDateStr} (Текущий год: ${currentYear}).
+Все расчёты возраста, дат и текущих событий обязательно производи относительно ${currentYear} года!
 
-Если запрос связан с дневником — используй контекст. Если нет — просто отвечай как помощник.`
-    }
-  ];
+Контекст дневника пользователя:
+${diaryContext || 'Записей в дневнике пока нет.'}
+
+Если вопрос касается дневника — используй контекст выше. Если вопрос общий — отвечай свободно.`;
+
+  const messagesPayload = [{ role: 'system', content: systemPrompt }];
 
   for (let i = 0; i < chatHistory.length - 1; i++) {
     const item = chatHistory[i];
@@ -533,9 +606,8 @@ ${diaryContext || 'Записей в дневнике нет.'}
     } catch (e) {}
   }
 
-  chatHistory[chatHistory.length - 1].text = aiReplyText || 'Ошибка подключения.';
+  chatHistory[chatHistory.length - 1].text = aiReplyText || 'Ошибка получения ответа от сервера.';
   renderChat();
 };
 
-// Инициализация
 selectDate(selectedDateKey, new Date());
