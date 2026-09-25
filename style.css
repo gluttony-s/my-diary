@@ -423,7 +423,6 @@ body {
   color: #fff;
 }
 
-/* Меню Настроек */
 .radial-menu {
   position: relative;
 }
@@ -454,7 +453,7 @@ body {
   display: none !important;
 }
 
-/* Модальное окно */
+/* Модальные окна */
 .overlay {
   position: fixed;
   top: 0;
@@ -526,14 +525,14 @@ body {
   color: #a1a1aa;
 }
 
-/* AI ЧАТ И СТИЛИЗАЦИЯ MARKDOWN / LATEX */
+/* AI-Чат */
 .ai-container {
   background: #18181b;
   border: 1px solid #27272a;
   border-radius: 12px;
   width: 100%;
   max-width: 520px;
-  height: 80vh;
+  height: 85vh;
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -544,6 +543,20 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.ai-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .icon-btn {
@@ -572,6 +585,7 @@ body {
   flex-direction: column;
   gap: 12px;
   padding-right: 4px;
+  scroll-behavior: smooth;
 }
 
 .chat-msg {
@@ -579,7 +593,7 @@ body {
   border-radius: 10px;
   font-size: 14px;
   line-height: 1.5;
-  max-width: 90%;
+  max-width: 95%;
 }
 
 .user-msg {
@@ -638,11 +652,16 @@ body {
   overflow-x: auto;
 }
 
-/* Стилизация formulas KaTeX */
+/* Оформление математических формул KaTeX */
 .katex-display {
-  margin: 10px 0 !important;
+  margin: 12px 0 !important;
   overflow-x: auto;
   overflow-y: hidden;
+  padding: 4px 0;
+}
+
+.katex {
+  font-size: 1.05em;
 }
 
 .ai-input-box {
