@@ -105,7 +105,6 @@ function renderHeader() {
 function renderWeekStrip() {
     weekDaysContainer.innerHTML = '';
     
-    // Находим понедельник текущей недели
     const curr = new Date(currentDate);
     const dayOfWeek = curr.getDay();
     const diff = curr.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
@@ -122,7 +121,6 @@ function renderWeekStrip() {
         const isSelected = dateKey === formatDateKey(currentDate);
         if (isSelected) dayCell.classList.add('selected');
 
-        // Проверяем, есть ли хоть какие-то данные в этот день
         const data = diaryData[dateKey];
         const hasNotes = data && (data.mainNote || (data.subtopics && data.subtopics.length > 0) || (data.todos && data.todos.length > 0));
         if (hasNotes) {
@@ -147,14 +145,11 @@ function renderWeekStrip() {
 function renderDayContent() {
     const dayData = getCurrentDayData();
     
-    // Заголовок даты
     const options = { day: 'numeric', month: 'long', weekday: 'long' };
     selectedDateTitle.textContent = currentDate.toLocaleDateString('ru-RU', options);
 
-    // Главная заметка
     mainNoteInput.value = dayData.mainNote || '';
 
-    // Подсветка активного настроения
     document.querySelectorAll('.mood-btn').forEach(btn => {
         if (btn.dataset.mood === dayData.mood) {
             btn.classList.add('active');
@@ -200,7 +195,6 @@ function renderSubtopics() {
         subtopicsContainer.appendChild(card);
     });
 
-    // Рендерим формулы KaTeX внутри подтем
     renderMathInElement(subtopicsContainer, {
         delimiters: [
             {left: '$$', right: '$$', display: true},
@@ -299,7 +293,6 @@ function renderPhotos() {
 
 // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
 
-// Навигация по неделям
 prevWeekBtn.addEventListener('click', () => {
     currentDate.setDate(currentDate.getDate() - 7);
     initApp();
@@ -317,7 +310,6 @@ calendarPicker.addEventListener('change', (e) => {
     }
 });
 
-// Автосохранение главной заметки
 mainNoteInput.addEventListener('input', () => {
     const dayData = getCurrentDayData();
     dayData.mainNote = mainNoteInput.value;
@@ -325,7 +317,6 @@ mainNoteInput.addEventListener('input', () => {
     renderWeekStrip();
 });
 
-// Выбор настроения
 document.querySelectorAll('.mood-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const dayData = getCurrentDayData();
@@ -335,7 +326,6 @@ document.querySelectorAll('.mood-btn').forEach(btn => {
     });
 });
 
-// Кнопки добавления
 optAddTopic.addEventListener('click', () => openSubtopicModal(null));
 optAddTask.addEventListener('click', () => {
     taskInputText.value = '';
@@ -344,7 +334,6 @@ optAddTask.addEventListener('click', () => {
     taskInputText.focus();
 });
 
-// Сохранение подтемы из модалки
 modalSaveBtn.addEventListener('click', () => {
     const title = modalInputTitle.value.trim();
     const body = modalInputBody.value.trim();
@@ -371,7 +360,6 @@ modalSaveBtn.addEventListener('click', () => {
 modalCancelBtn.addEventListener('click', closeSubtopicModal);
 modalCancelTopBtn.addEventListener('click', closeSubtopicModal);
 
-// Сохранение задачи из модалки
 taskSaveBtn.addEventListener('click', () => {
     const text = taskInputText.value.trim();
     const time = taskInputTime.value;
@@ -393,7 +381,6 @@ taskSaveBtn.addEventListener('click', () => {
 taskCancelBtn.addEventListener('click', () => taskOverlay.classList.add('hidden'));
 taskCancelTopBtn.addEventListener('click', () => taskOverlay.classList.add('hidden'));
 
-// Загрузка фото (сжатие в Base64)
 photoInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -439,12 +426,10 @@ photoInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-// Радиальное меню настроек
 radialToggleBtn.addEventListener('click', () => {
     radialOptions.classList.toggle('hidden');
 });
 
-// AI Чат открытие/закрытие
 optAi.addEventListener('click', () => {
     radialOptions.classList.add('hidden');
     aiOverlay.classList.remove('hidden');
@@ -463,13 +448,13 @@ clearChatBtn.addEventListener('click', () => {
     aiResponseArea.innerHTML = '';
 });
 
-// Отправка запроса к ИИ (через стабильный шлюз vsegpt.ru без блокировок)
+// Отправка запроса к ИИ через официальный бесплатный API Google AI Studio (Gemini)
 aiAskBtn.addEventListener('click', async () => {
     const question = aiQuestionInput.value.trim();
     if (!question) return;
 
     if (!openRouterApiKey) {
-        alert('Введи API-ключ!');
+        alert('Введи бесплатный API-ключ от Google AI Studio!');
         return;
     }
 
@@ -486,17 +471,21 @@ aiAskBtn.addEventListener('click', async () => {
     const aiMsgEl = appendChatMessage('ai', 'Думаю...');
 
     try {
-        const response = await fetch('https://api.vsegpt.ru/v1/chat/completions', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${openRouterApiKey}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${openRouterApiKey}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.5-flash',
-                messages: [
-                    { role: 'system', content: 'Ты умный ассистент дневника. Отвечай кратко и четко на основе переданных подтем и задач.' },
-                    { role: 'user', content: `${context}\nВопрос: ${question}` }
+                system_instruction: {
+                    parts: [{ text: 'Ты умный ассистент дневника. Отвечай кратко и четко на основе переданных подтем и задач.' }]
+                },
+                contents: [
+                    {
+                        parts: [
+                            { text: `${context}\nВопрос: ${question}` }
+                        ]
+                    }
                 ]
             })
         });
@@ -508,8 +497,9 @@ aiAskBtn.addEventListener('click', async () => {
             return;
         }
 
-        if (data.choices && data.choices[0]) {
-            aiMsgEl.innerHTML = marked.parse(data.choices[0].message.content);
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            const answerText = data.candidates[0].content.parts[0].text;
+            aiMsgEl.innerHTML = marked.parse(answerText);
         } else {
             aiMsgEl.textContent = 'Ошибка получения ответа от ИИ.';
         }
@@ -528,7 +518,6 @@ function appendChatMessage(sender, text) {
     return msgDiv;
 }
 
-// Экспорт полный (бэкап)
 optExport.addEventListener('click', () => {
     radialOptions.classList.add('hidden');
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(diaryData, null, 2));
@@ -540,7 +529,6 @@ optExport.addEventListener('click', () => {
     dlAnchor.remove();
 });
 
-// Экспорт без личного (только задачи и подтемы для ИИ)
 optExportAi.addEventListener('click', () => {
     radialOptions.classList.add('hidden');
     let cleanExport = {};
@@ -559,7 +547,6 @@ optExportAi.addEventListener('click', () => {
     dlAnchor.remove();
 });
 
-// Импорт бэкапа
 importFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -580,7 +567,6 @@ importFile.addEventListener('change', (e) => {
     reader.readAsText(file);
 });
 
-// Утилита экранирования HTML
 function escapeHtml(str) {
     return str
         .replace(/&/g, "&amp;")
@@ -590,5 +576,4 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
-// Запуск приложения при загрузке
 initApp();
