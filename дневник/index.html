@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Личный Дневник & Планировщик</title>
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Подключение манифеста и иконки для мобильных устройств -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="theme-color" content="#121214">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@13.0.2/lib/marked.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container" id="swipe-area">
+    <!-- Шапка с месяцем и календарем -->
+    <header class="app-header">
+      <button id="prev-week" class="nav-btn">‹</button>
+      <div class="month-selector" id="month-selector">
+        <h2 id="month-title">Октябрь 2026</h2>
+        <input type="date" id="calendar-picker">
+      </div>
+      <button id="next-week" class="nav-btn">›</button>
+    </header>
+
+    <!-- Лента 7 дней -->
+    <div id="week-days" class="week-days"></div>
+
+    <!-- Статус дня -->
+    <div class="day-status-bar">
+      <h3 id="selected-date-title">2 октября</h3>
+      <div class="mood-selector">
+        <button class="mood-btn" data-mood="😊">😊</button>
+        <button class="mood-btn" data-mood="😐">😐</button>
+        <button class="mood-btn" data-mood="😔">😔</button>
+        <button class="mood-btn" data-mood="🔥">🔥</button>
+      </div>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="day-content">
+      <!-- 1. Главная заметка -->
+      <div class="main-note-section">
+        <textarea id="main-note-input" placeholder="Как прошёл твой день? (Личные мысли, скрыты от ИИ)..."></textarea>
+      </div>
+
+      <!-- Яркие центральные кнопки -->
+      <div class="center-action-buttons">
+        <button id="opt-add-topic" class="action-btn topic-btn">📝 Добавить подтему</button>
+        <button id="opt-add-task" class="action-btn task-btn">✅ Добавить задачу</button>
+      </div>
+
+      <!-- 2. Подтемы -->
+      <div id="subtopics-container" class="subtopics-container"></div>
+
+      <!-- 3. Задачи -->
+      <div class="todos-section">
+        <div class="section-title">
+          <h4>Задачи</h4>
+          <span id="todos-counter" class="counter">0/0</span>
+        </div>
+        <div id="todo-list" class="todo-list"></div>
+      </div>
+
+      <!-- 4. Фотографии -->
+      <div class="photos-section">
+        <div class="section-title">
+          <h4>Фотографии</h4>
+          <label for="photo-input" class="add-photo-label">+ Добавить фото</label>
+          <input type="file" id="photo-input" accept="image/*" class="hidden">
+        </div>
+        <div id="photo-list" class="photo-grid"></div>
+      </div>
+    </main>
+
+    <!-- Плавающая кнопка настроек -->
+    <div class="floating-controls">
+      <div class="radial-menu">
+        <button id="radial-toggle-btn" class="circle-btn settings-btn" title="Настройки">⚙️</button>
+        <div id="radial-options" class="radial-options hidden">
+          <button id="opt-ai" class="radial-opt-btn" title="AI-Чат">🤖</button>
+          <button id="opt-export" class="radial-opt-btn" title="Скачать Бэкап (Полный)">📥</button>
+          <button id="opt-export-ai" class="radial-opt-btn" title="Скачать задачи для ИИ (Без личного)">📄</button>
+          <label for="import-file" class="radial-opt-btn" title="Загрузить бэкап">📤</label>
+          <input type="file" id="import-file" accept=".json" class="hidden">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно (Подтемы) -->
+  <div id="modal-overlay" class="overlay hidden">
+    <div class="modal-card full-editor-modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Подтема</h3>
+        <button id="modal-cancel-top-btn" class="icon-close-btn">✕</button>
+      </div>
+      <input type="text" id="modal-input-title" placeholder="Заголовок подтемы..." autocomplete="off" data-lpignore="true">
+      <textarea id="modal-input-body" placeholder="Пишите здесь... Пространство автоматически расширяется во весь экран над клавиатурой."></textarea>
+      <div class="modal-actions">
+        <button id="modal-cancel-btn" class="secondary-btn">Отмена</button>
+        <button id="modal-save-btn" class="primary-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно (Задачи) -->
+  <div id="task-overlay" class="overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Новая задача</h3>
+        <button id="task-cancel-top-btn" class="icon-close-btn">✕</button>
+      </div>
+      <input type="text" id="task-input-text" placeholder="Что нужно сделать?" autocomplete="off" data-lpignore="true">
+      <div class="alarm-wrapper">
+        <label for="task-input-time">⏰ Будильник:</label>
+        <input type="time" id="task-input-time">
+      </div>
+      <div class="modal-actions">
+        <button id="task-cancel-btn" class="secondary-btn">Отмена</button>
+        <button id="task-save-btn" class="primary-btn">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Оверлей -->
+  <div id="ai-overlay" class="overlay hidden">
+    <div class="modal-card full-editor-modal ai-container">
+      <div class="ai-header">
+        <h3>🤖 AI-Ассистент</h3>
+        <div class="ai-header-controls">
+          <button id="clear-chat-btn" class="text-btn">Очистить</button>
+          <button id="close-ai-btn" class="icon-close-btn">✕</button>
+        </div>
+      </div>
+      <div class="ai-key-box">
+        <input type="password" id="ai-key-input" autocomplete="new-password" data-lpignore="true" placeholder="Введи OpenRouter API ключ">
+      </div>
+      <div id="ai-response-area" class="ai-chat-history"></div>
+      <div class="ai-input-box">
+        <input type="text" id="ai-question-input" placeholder="Спроси об имеющихся задачах..." autocomplete="off" data-lpignore="true">
+        <button id="ai-ask-btn" class="primary-btn">Задать</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  
+  <!-- Скрипт регистрации Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(registration => console.log('SW зарегистрирован'))
+          .catch(error => console.log('Ошибка SW:', error));
+      });
+    }
+  </script>
+</body>
+</html>
