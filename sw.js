@@ -32,9 +32,16 @@ self.addEventListener('activate', (event) => {
     }).then(() => self.clients.claim())
   );
 });
-
-// Перехват запросов
+// Перехват запросов (кэшируем только свои файлы, API OpenRouter не трогаем)
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Если это запрос к стороннему API (например, OpenRouter), пропускаем его мимо кэша
+  if (url.origin !== location.origin) {
+    return;
+  }
+
+  // Для файлов приложения: сначала сеть, при сбое — кэш
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
