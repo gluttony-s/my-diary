@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Личный Дневник & Планировщик</title>
+  
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Подключение манифеста и иконки для мобильных устройств -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="theme-color" content="#121214">
+
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -39,7 +46,7 @@
 
     <!-- Основной контент -->
     <main class="day-content">
-      <!-- 1. Главная заметка (Личные мысли - скрыто от ИИ) -->
+      <!-- 1. Главная заметка -->
       <div class="main-note-section">
         <textarea id="main-note-input" placeholder="Как прошёл твой день? (Личные мысли, скрыты от ИИ)..."></textarea>
       </div>
@@ -76,9 +83,7 @@
     <!-- Плавающая кнопка настроек -->
     <div class="floating-controls">
       <div class="radial-menu">
-        <button id="radial-toggle-btn" class="circle-btn settings-btn" title="Настройки">
-          ⚙️
-        </button>
+        <button id="radial-toggle-btn" class="circle-btn settings-btn" title="Настройки">⚙️</button>
         <div id="radial-options" class="radial-options hidden">
           <button id="opt-ai" class="radial-opt-btn" title="AI-Чат">🤖</button>
           <button id="opt-export" class="radial-opt-btn" title="Скачать Бэкап (Полный)">📥</button>
@@ -90,7 +95,7 @@
     </div>
   </div>
 
-  <!-- Улучшенное модальное окно (Подтемы - Удобно для мобильных) -->
+  <!-- Модальное окно (Подтемы) -->
   <div id="modal-overlay" class="overlay hidden">
     <div class="modal-card full-editor-modal">
       <div class="modal-header">
@@ -106,7 +111,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно (Задачи с будильником) -->
+  <!-- Модальное окно (Задачи) -->
   <div id="task-overlay" class="overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -147,5 +152,16 @@
   </div>
 
   <script src="app.js"></script>
+  
+  <!-- Скрипт регистрации Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(registration => console.log('SW зарегистрирован'))
+          .catch(error => console.log('Ошибка SW:', error));
+      });
+    }
+  </script>
 </body>
 </html>

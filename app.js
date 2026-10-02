@@ -46,34 +46,6 @@ function saveToStorage() {
     localStorage.setItem('diaryData', JSON.stringify(diaryData));
 }
 
-// --- АВТОМАТИЧЕСКИЙ ПЕРЕНОС НЕВЫПОЛНЕННЫХ ЗАДАЧ ---
-function checkAndRolloverTasks() {
-    const todayKey = formatDateKey(new Date());
-    const lastVisited = localStorage.getItem('lastVisitedDateKey');
-
-    if (lastVisited && lastVisited !== todayKey) {
-        initDayData(todayKey);
-
-        Object.keys(diaryData).forEach(dateKey => {
-            if (dateKey < todayKey && diaryData[dateKey].todos) {
-                diaryData[dateKey].todos.forEach(todo => {
-                    if (!todo.done && !todo.rolledOver) {
-                        diaryData[todayKey].todos.push({
-                            id: Date.now() + Math.random(),
-                            text: todo.text,
-                            done: false,
-                            alarmTime: todo.alarmTime || null
-                        });
-                        todo.rolledOver = true;
-                    }
-                });
-            }
-        });
-        saveToStorage();
-    }
-    localStorage.setItem('lastVisitedDateKey', todayKey);
-}
-
 // --- РЕНДЕР КАЛЕНДАРЯ И ДНЯ ---
 function renderWeek() {
     weekDaysContainer.innerHTML = '';
@@ -172,7 +144,7 @@ swipeArea.addEventListener('touchend', (e) => {
     if (touchEndX > touchStartX + 50) { currentDate.setDate(currentDate.getDate() - 1); loadDay(); }
 }, false);
 
-// --- ПОДТЕМЫ (С УДОБНЫМ РЕДАКТИРОВАНИЕМ В ОКНЕ) ---
+// --- ПОДТЕМЫ ---
 function renderSubtopics() {
     subtopicsContainer.innerHTML = '';
     const dateKey = formatDateKey(currentDate);
@@ -193,18 +165,15 @@ function renderSubtopics() {
             ${subtopic.body ? `<div class="subtopic-body-preview">${escapeHtml(subtopic.body)}</div>` : ''}
         `;
 
-        // Кнопка полноэкранного редактирования
         card.querySelector('.edit-subtopic-btn').addEventListener('click', () => {
             openSubtopicModal(subtopic);
         });
 
-        // Скопировать
         card.querySelector('.copy-subtopic-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(`${subtopic.title}\n\n${subtopic.body || ''}`);
             alert('Скопировано!');
         });
 
-        // Удалить
         card.querySelector('.del-subtopic-btn').addEventListener('click', () => {
             if (confirm('Точно удалить подтему?')) {
                 diaryData[dateKey].subtopics = diaryData[dateKey].subtopics.filter(s => s.id !== subtopic.id);
@@ -530,5 +499,4 @@ function escapeHtml(str) {
 }
 
 // Запуск
-checkAndRolloverTasks();
 loadDay();
