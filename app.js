@@ -19,6 +19,7 @@ const photoInput = document.getElementById('photo-input');
 // Модальные окна
 const modalOverlay = document.getElementById('modal-overlay');
 const taskOverlay = document.getElementById('task-overlay');
+const modalTitle = document.getElementById('modal-title');
 const modalInputTitle = document.getElementById('modal-input-title');
 const modalInputBody = document.getElementById('modal-input-body');
 
@@ -45,7 +46,7 @@ function saveToStorage() {
     localStorage.setItem('diaryData', JSON.stringify(diaryData));
 }
 
-// --- АВТОМАТИЧЕСКИЙ ПЕРЕНОС НЕВЫПОЛНЕННЫХ ЗАДАЧ НА СЕГОДНЯ ---
+// --- АВТОМАТИЧЕСКИЙ ПЕРЕНОС НЕВЫПОЛНЕННЫХ ЗАДАЧ ---
 function checkAndRolloverTasks() {
     const todayKey = formatDateKey(new Date());
     const lastVisited = localStorage.getItem('lastVisitedDateKey');
@@ -53,19 +54,16 @@ function checkAndRolloverTasks() {
     if (lastVisited && lastVisited !== todayKey) {
         initDayData(todayKey);
 
-        // Находим все невыполненные задачи из прошлых дней
         Object.keys(diaryData).forEach(dateKey => {
             if (dateKey < todayKey && diaryData[dateKey].todos) {
                 diaryData[dateKey].todos.forEach(todo => {
                     if (!todo.done && !todo.rolledOver) {
-                        // Переносим задачу в сегодняшний день
                         diaryData[todayKey].todos.push({
                             id: Date.now() + Math.random(),
                             text: todo.text,
                             done: false,
                             alarmTime: todo.alarmTime || null
                         });
-                        // Помечаем в старом дне, чтобы не дублировать
                         todo.rolledOver = true;
                     }
                 });
@@ -76,7 +74,7 @@ function checkAndRolloverTasks() {
     localStorage.setItem('lastVisitedDateKey', todayKey);
 }
 
-// --- РЕНДЕР ДНЕЙ И НЕДЕЛИ ---
+// --- РЕНДЕР КАЛЕНДАРЯ И ДНЯ ---
 function renderWeek() {
     weekDaysContainer.innerHTML = '';
     const dayOfWeek = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
@@ -135,7 +133,7 @@ mainNoteInput.addEventListener('input', () => {
     renderWeek();
 });
 
-// Выбор настроения
+// Настроение
 document.querySelectorAll('.mood-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const dateKey = formatDateKey(currentDate);
@@ -146,7 +144,7 @@ document.querySelectorAll('.mood-btn').forEach(btn => {
     });
 });
 
-// Навигация по неделям и календарь
+// Навигация
 document.getElementById('prev-week').addEventListener('click', () => {
     currentDate.setDate(currentDate.getDate() - 7);
     loadDay();
@@ -162,35 +160,19 @@ calendarPicker.addEventListener('change', (e) => {
     }
 });
 
-// --- СВАЙПЫ МЕЖДУ ДНЯМИ ---
+// Свайпы
 let touchStartX = 0;
 let touchEndX = 0;
 const swipeArea = document.getElementById('swipe-area');
 
-swipeArea.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-}, false);
-
+swipeArea.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, false);
 swipeArea.addEventListener('touchend', (e) => {
     touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
+    if (touchEndX < touchStartX - 50) { currentDate.setDate(currentDate.getDate() + 1); loadDay(); }
+    if (touchEndX > touchStartX + 50) { currentDate.setDate(currentDate.getDate() - 1); loadDay(); }
 }, false);
 
-function handleSwipe() {
-    const swipeThreshold = 50; // Минимальная дистанция свайпа
-    if (touchEndX < touchStartX - swipeThreshold) {
-        // Свайп влево -> Следующий день
-        currentDate.setDate(currentDate.getDate() + 1);
-        loadDay();
-    }
-    if (touchEndX > touchStartX + swipeThreshold) {
-        // Свайп вправо -> Предыдущий день
-        currentDate.setDate(currentDate.getDate() - 1);
-        loadDay();
-    }
-}
-
-// --- ПОДТЕМЫ ---
+// --- ПОДТЕМЫ (С УДОБНЫМ РЕДАКТИРОВАНИЕМ В ОКНЕ) ---
 function renderSubtopics() {
     subtopicsContainer.innerHTML = '';
     const dateKey = formatDateKey(currentDate);
@@ -203,39 +185,28 @@ function renderSubtopics() {
             <div class="subtopic-header">
                 <span class="subtopic-title">${escapeHtml(subtopic.title)}</span>
                 <div class="subtopic-actions">
+                    <button class="quick-btn edit-subtopic-btn" title="Редактировать во весь экран">✏️</button>
                     <button class="quick-btn copy-subtopic-btn" title="Скопировать">📋</button>
-                    <button class="quick-btn download-subtopic-btn" title="Скачать файлом">💾</button>
                     <button class="quick-btn del-subtopic-btn" title="Удалить">✕</button>
                 </div>
             </div>
-            <div class="subtopic-body">
-                <textarea placeholder="Содержимое...">${escapeHtml(subtopic.body || '')}</textarea>
-            </div>
+            ${subtopic.body ? `<div class="subtopic-body-preview">${escapeHtml(subtopic.body)}</div>` : ''}
         `;
 
-        const textarea = card.querySelector('textarea');
-        textarea.addEventListener('input', () => {
-            subtopic.body = textarea.value;
-            saveToStorage();
+        // Кнопка полноэкранного редактирования
+        card.querySelector('.edit-subtopic-btn').addEventListener('click', () => {
+            openSubtopicModal(subtopic);
         });
 
-        // Быстрое копирование
-        card.querySelector('.copy-subtopic-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
+        // Скопировать
+        card.querySelector('.copy-subtopic-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(`${subtopic.title}\n\n${subtopic.body || ''}`);
-            alert('Текст подтемы скопирован!');
+            alert('Скопировано!');
         });
 
-        // Скачивание отдельного куска
-        card.querySelector('.download-subtopic-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            downloadFile(`${subtopic.title}\n\n${subtopic.body || ''}`, `${subtopic.title}.txt`);
-        });
-
-        // Удаление с подтверждением
-        card.querySelector('.del-subtopic-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (confirm('Точно удалить эту подтему?')) {
+        // Удалить
+        card.querySelector('.del-subtopic-btn').addEventListener('click', () => {
+            if (confirm('Точно удалить подтему?')) {
                 diaryData[dateKey].subtopics = diaryData[dateKey].subtopics.filter(s => s.id !== subtopic.id);
                 saveToStorage();
                 loadDay();
@@ -246,7 +217,22 @@ function renderSubtopics() {
     });
 }
 
-// --- ЗАДАЧИ И БУДИЛЬНИКИ ---
+function openSubtopicModal(subtopic = null) {
+    if (subtopic) {
+        editingSubtopicId = subtopic.id;
+        modalTitle.textContent = "Редактировать подтему";
+        modalInputTitle.value = subtopic.title;
+        modalInputBody.value = subtopic.body || '';
+    } else {
+        editingSubtopicId = null;
+        modalTitle.textContent = "Новая подтема";
+        modalInputTitle.value = '';
+        modalInputBody.value = '';
+    }
+    modalOverlay.classList.remove('hidden');
+}
+
+// --- ЗАДАЧИ ---
 function renderTodos() {
     todoList.innerHTML = '';
     const dateKey = formatDateKey(currentDate);
@@ -265,16 +251,14 @@ function renderTodos() {
             <button class="del-btn">✕</button>
         `;
 
-        // Переключение готовности
         item.querySelector('.custom-checkbox').addEventListener('click', () => {
             todo.done = !todo.done;
             saveToStorage();
             loadDay();
         });
 
-        // Удаление с подтверждением
         item.querySelector('.del-btn').addEventListener('click', () => {
-            if (confirm('Удалить эту задачу?')) {
+            if (confirm('Удалить задачу?')) {
                 diaryData[dateKey].todos = diaryData[dateKey].todos.filter(t => t.id !== todo.id);
                 saveToStorage();
                 loadDay();
@@ -287,7 +271,7 @@ function renderTodos() {
     todosCounter.textContent = `${completedCount}/${todos.length}`;
 }
 
-// Проверка будильников раз в минуту
+// Будильники
 setInterval(() => {
     const now = new Date();
     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -319,7 +303,7 @@ function renderPhotos() {
         `;
 
         card.querySelector('.del-photo-btn').addEventListener('click', () => {
-            if (confirm('Точно удалить эту фотографию?')) {
+            if (confirm('Удалить фото?')) {
                 diaryData[dateKey].photos = diaryData[dateKey].photos.filter(p => p !== photoSrc);
                 saveToStorage();
                 loadDay();
@@ -345,24 +329,15 @@ photoInput.addEventListener('change', (e) => {
     }
 });
 
-// --- ЦЕНТРАЛЬНЫЕ КНОПКИ И МОДАЛЬНЫЕ ОКНА ---
-const optAddTopic = document.getElementById('opt-add-topic');
-const optAddTask = document.getElementById('opt-add-task');
-
-optAddTopic.addEventListener('click', () => {
-    editingSubtopicId = null;
-    modalInputTitle.value = '';
-    modalInputBody.value = '';
-    modalOverlay.classList.remove('hidden');
-});
-
-optAddTask.addEventListener('click', () => {
+// --- СОБЫТИЯ ЦЕНТРАЛЬНЫХ КНОПОК ---
+document.getElementById('opt-add-topic').addEventListener('click', () => openSubtopicModal());
+document.getElementById('opt-add-task').addEventListener('click', () => {
     document.getElementById('task-input-text').value = '';
     document.getElementById('task-input-time').value = '';
     taskOverlay.classList.remove('hidden');
 });
 
-// Сохранение новой подтемы
+// Сохранение подтемы
 document.getElementById('modal-save-btn').addEventListener('click', () => {
     const title = modalInputTitle.value.trim();
     if (!title) return;
@@ -370,22 +345,30 @@ document.getElementById('modal-save-btn').addEventListener('click', () => {
     const dateKey = formatDateKey(currentDate);
     initDayData(dateKey);
 
-    diaryData[dateKey].subtopics.push({
-        id: Date.now(),
-        title: title,
-        body: modalInputBody.value
-    });
+    if (editingSubtopicId) {
+        const target = diaryData[dateKey].subtopics.find(s => s.id === editingSubtopicId);
+        if (target) {
+            target.title = title;
+            target.body = modalInputBody.value;
+        }
+    } else {
+        diaryData[dateKey].subtopics.push({
+            id: Date.now(),
+            title: title,
+            body: modalInputBody.value
+        });
+    }
 
     saveToStorage();
     modalOverlay.classList.add('hidden');
     loadDay();
 });
 
-document.getElementById('modal-cancel-btn').addEventListener('click', () => {
-    modalOverlay.classList.add('hidden');
-});
+const closeModal = () => modalOverlay.classList.add('hidden');
+document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+document.getElementById('modal-cancel-top-btn').addEventListener('click', closeModal);
 
-// Сохранение новой задачи
+// Сохранение задачи
 document.getElementById('task-save-btn').addEventListener('click', () => {
     const text = document.getElementById('task-input-text').value.trim();
     const alarmTime = document.getElementById('task-input-time').value;
@@ -407,53 +390,34 @@ document.getElementById('task-save-btn').addEventListener('click', () => {
     loadDay();
 });
 
-document.getElementById('task-cancel-btn').addEventListener('click', () => {
-    taskOverlay.classList.add('hidden');
-});
+const closeTaskModal = () => taskOverlay.classList.add('hidden');
+document.getElementById('task-cancel-btn').addEventListener('click', closeTaskModal);
+document.getElementById('task-cancel-top-btn').addEventListener('click', closeTaskModal);
 
-// --- МЕНЮ НАСТРОЕК И ЭКСПОРТ ---
+// --- ЭКСПОРТ / ИМПОРТ И AI ---
 const radialToggleBtn = document.getElementById('radial-toggle-btn');
 const radialOptions = document.getElementById('radial-options');
 
-radialToggleBtn.addEventListener('click', () => {
-    radialOptions.classList.toggle('hidden');
-});
+radialToggleBtn.addEventListener('click', () => radialOptions.classList.toggle('hidden'));
 
-// Скачивание полной копии (Полный бэкап)
 document.getElementById('opt-export').addEventListener('click', () => {
-    downloadFile(JSON.stringify(diaryData, null, 2), `backup_full_${formatDateKey(new Date())}.json`);
+    downloadFile(JSON.stringify(diaryData, null, 2), `backup_${formatDateKey(new Date())}.json`);
 });
 
-// Скачивание задач и подтем для ИИ (Без личных мыслей)
 document.getElementById('opt-export-ai').addEventListener('click', () => {
     let aiContent = "СПИСОК ЗАДАЧ И ПОДТЕМ ДЛЯ ИИ:\n\n";
-    
     Object.keys(diaryData).forEach(date => {
         const day = diaryData[date];
         if ((day.subtopics && day.subtopics.length > 0) || (day.todos && day.todos.length > 0)) {
             aiContent += `=== Дата: ${date} ===\n`;
-            
-            if (day.subtopics && day.subtopics.length > 0) {
-                aiContent += "-- Подтемы:\n";
-                day.subtopics.forEach(s => {
-                    aiContent += `  * ${s.title}: ${s.body || ''}\n`;
-                });
-            }
-            
-            if (day.todos && day.todos.length > 0) {
-                aiContent += "-- Задачи:\n";
-                day.todos.forEach(t => {
-                    aiContent += `  [${t.done ? 'X' : ' '}] ${t.text}\n`;
-                });
-            }
+            if (day.subtopics) day.subtopics.forEach(s => { aiContent += `  * ${s.title}: ${s.body || ''}\n`; });
+            if (day.todos) day.todos.forEach(t => { aiContent += `  [${t.done ? 'X' : ' '}] ${t.text}\n`; });
             aiContent += "\n";
         }
     });
-
     downloadFile(aiContent, `ai_context_${formatDateKey(new Date())}.txt`);
 });
 
-// Импорт бэкапа
 document.getElementById('import-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -463,10 +427,8 @@ document.getElementById('import-file').addEventListener('change', (e) => {
                 diaryData = JSON.parse(event.target.result);
                 saveToStorage();
                 loadDay();
-                alert('Данные успешно импортированы!');
-            } catch (err) {
-                alert('Ошибка чтения файла бэкапа!');
-            }
+                alert('Данные импортированы!');
+            } catch (err) { alert('Ошибка бэкапа!'); }
         };
         reader.readAsText(file);
     }
@@ -481,7 +443,7 @@ function downloadFile(content, fileName) {
     URL.revokeObjectURL(a.href);
 }
 
-// --- AI АССИСТЕНТ ---
+// AI
 const optAi = document.getElementById('opt-ai');
 const aiOverlay = document.getElementById('ai-overlay');
 const closeAiBtn = document.getElementById('close-ai-btn');
@@ -489,46 +451,36 @@ const aiKeyInput = document.getElementById('ai-key-input');
 const aiQuestionInput = document.getElementById('ai-question-input');
 const aiAskBtn = document.getElementById('ai-ask-btn');
 const aiResponseArea = document.getElementById('ai-response-area');
-const clearChatBtn = document.getElementById('clear-chat-btn');
 
 optAi.addEventListener('click', () => {
     aiOverlay.classList.remove('hidden');
     aiKeyInput.value = openRouterApiKey;
 });
 
-closeAiBtn.addEventListener('click', () => {
-    aiOverlay.classList.add('hidden');
-});
+closeAiBtn.addEventListener('click', () => aiOverlay.classList.add('hidden'));
 
 aiKeyInput.addEventListener('change', () => {
     openRouterApiKey = aiKeyInput.value.trim();
     localStorage.setItem('openRouterApiKey', openRouterApiKey);
 });
 
-clearChatBtn.addEventListener('click', () => {
-    aiResponseArea.innerHTML = '';
-});
+document.getElementById('clear-chat-btn').addEventListener('click', () => { aiResponseArea.innerHTML = ''; });
 
 aiAskBtn.addEventListener('click', async () => {
     const question = aiQuestionInput.value.trim();
     if (!question) return;
 
     if (!openRouterApiKey) {
-        alert('Пожалуйста, введи OpenRouter API Ключ!');
+        alert('Введи OpenRouter API Ключ!');
         return;
     }
 
-    // Собираем контекст БЕЗ личных мыслей
     const dateKey = formatDateKey(currentDate);
     const dayData = diaryData[dateKey] || {};
     
     let context = `Контекст за ${dateKey}:\n`;
-    if (dayData.subtopics) {
-        context += "Подтемы:\n" + dayData.subtopics.map(s => `- ${s.title}: ${s.body}`).join('\n') + "\n";
-    }
-    if (dayData.todos) {
-        context += "Задачи:\n" + dayData.todos.map(t => `- [${t.done ? 'Готово' : 'В процессе'}] ${t.text}`).join('\n') + "\n";
-    }
+    if (dayData.subtopics) context += "Подтемы:\n" + dayData.subtopics.map(s => `- ${s.title}: ${s.body}`).join('\n') + "\n";
+    if (dayData.todos) context += "Задачи:\n" + dayData.todos.map(t => `- [${t.done ? 'Готово' : 'В процессе'}] ${t.text}`).join('\n') + "\n";
 
     appendChatMessage('user', question);
     aiQuestionInput.value = '';
@@ -545,7 +497,7 @@ aiAskBtn.addEventListener('click', async () => {
             body: JSON.stringify({
                 model: 'google/gemini-2.5-flash',
                 messages: [
-                    { role: 'system', content: 'Ты умный ассистент дневника. Тебе передаются задачи и подтемы пользователя. Личные мысли пользователя скрыты. Отвечай кратко и по делу.' },
+                    { role: 'system', content: 'Ты умный ассистент дневника. Отвечай кратко и четко на основе переданных подтем и задач.' },
                     { role: 'user', content: `${context}\nВопрос: ${question}` }
                 ]
             })
@@ -558,7 +510,7 @@ aiAskBtn.addEventListener('click', async () => {
             aiMsgEl.textContent = 'Ошибка получения ответа от ИИ.';
         }
     } catch (err) {
-        aiMsgEl.textContent = 'Ошибка сети при запросе к ИИ.';
+        aiMsgEl.textContent = 'Ошибка сети.';
     }
 });
 
@@ -577,6 +529,6 @@ function escapeHtml(str) {
     });
 }
 
-// --- ЗАПУСК ПРИ СТАРТЕ ---
+// Запуск
 checkAndRolloverTasks();
 loadDay();
