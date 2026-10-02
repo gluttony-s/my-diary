@@ -448,7 +448,7 @@ clearChatBtn.addEventListener('click', () => {
     aiResponseArea.innerHTML = '';
 });
 
-// Отправка запроса к ИИ через официальный бесплатный API Google AI Studio (Gemini)
+// Отправка запроса к ИИ через актуальный эндпоинт Google AI Studio (Gemini 2.5 Flash)
 aiAskBtn.addEventListener('click', async () => {
     const question = aiQuestionInput.value.trim();
     if (!question) return;
@@ -504,7 +504,7 @@ aiAskBtn.addEventListener('click', async () => {
             aiMsgEl.textContent = 'Ошибка получения ответа от ИИ.';
         }
     } catch (err) {
-        aiMsgEl.textContent = 'Ошибка сети. Проверь подключение к интернету.';
+        aiMsgEl.textContent = 'Ошибка сети. Проверь подключение к интернету или доступность сервиса.';
         console.error(err);
     }
 });
