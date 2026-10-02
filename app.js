@@ -471,19 +471,16 @@ aiAskBtn.addEventListener('click', async () => {
     const aiMsgEl = appendChatMessage('ai', 'Думаю...');
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${openRouterApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${openRouterApiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                system_instruction: {
-                    parts: [{ text: 'Ты умный ассистент дневника. Отвечай кратко и четко на основе переданных подтем и задач.' }]
-                },
                 contents: [
                     {
                         parts: [
-                            { text: `${context}\nВопрос: ${question}` }
+                            { text: `Ты умный ассистент дневника. Отвечай кратко и четко.\n\n${context}\nВопрос: ${question}` }
                         ]
                     }
                 ]
