@@ -3,20 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Личный Дневник</title>
+  <title>Личный Дневник & Планировщик</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Рендеринг формул LaTeX (KaTeX) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-
-  <!-- Рендеринг Markdown (Marked) -->
   <script src="https://cdn.jsdelivr.net/npm/marked@13.0.2/lib/marked.umd.min.js"></script>
 </head>
 <body>
 
-  <div class="app-container">
+  <div class="app-container" id="swipe-area">
     <!-- Шапка с месяцем и календарем -->
     <header class="app-header">
       <button id="prev-week" class="nav-btn">‹</button>
@@ -43,15 +39,21 @@
 
     <!-- Основной контент -->
     <main class="day-content">
-      <!-- 1. ОСНОВНОЕ ОКНО -->
+      <!-- 1. Главная заметка (Личные мысли - скрыто от ИИ) -->
       <div class="main-note-section">
-        <textarea id="main-note-input" placeholder="Как прошёл твой день? Запиши главные мысли..."></textarea>
+        <textarea id="main-note-input" placeholder="Как прошёл твой день? (Личные мысли, скрыты от ИИ)..."></textarea>
       </div>
 
-      <!-- 2. ПОДТЕМЫ -->
+      <!-- Центральные удобные кнопки -->
+      <div class="center-action-buttons">
+        <button id="opt-add-topic" class="action-btn topic-btn">📝 Добавить подтему</button>
+        <button id="opt-add-task" class="action-btn task-btn">✅ Добавить задачу</button>
+      </div>
+
+      <!-- 2. Подтемы -->
       <div id="subtopics-container" class="subtopics-container"></div>
 
-      <!-- 3. ЗАДАЧИ -->
+      <!-- 3. Задачи -->
       <div class="todos-section">
         <div class="section-title">
           <h4>Задачи</h4>
@@ -60,7 +62,7 @@
         <div id="todo-list" class="todo-list"></div>
       </div>
 
-      <!-- 4. ФОТОГРАФИИ -->
+      <!-- 4. Фотографии -->
       <div class="photos-section">
         <div class="section-title">
           <h4>Фотографии</h4>
@@ -71,20 +73,8 @@
       </div>
     </main>
 
-    <!-- НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ -->
+    <!-- Плавающая кнопка настроек -->
     <div class="floating-controls">
-      <div class="add-menu-wrapper">
-        <div id="plus-options" class="plus-options hidden">
-          <button id="opt-add-topic" class="circle-btn opt-topic" title="Добавить подтему">T</button>
-          <button id="opt-add-task" class="circle-btn opt-task" title="Добавить задачу">✓</button>
-        </div>
-        <button id="add-main-btn" class="circle-btn main-plus-btn" title="Добавить">
-          <svg viewBox="0 0 24 24" class="btn-icon">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-        </button>
-      </div>
-
       <div class="radial-menu">
         <button id="radial-toggle-btn" class="circle-btn settings-btn" title="Настройки">
           <svg viewBox="0 0 24 24" class="btn-icon icon-settings">
@@ -93,7 +83,8 @@
         </button>
         <div id="radial-options" class="radial-options hidden">
           <button id="opt-ai" class="radial-opt-btn" title="AI-Чат">🤖</button>
-          <button id="opt-export" class="radial-opt-btn" title="Скачать бэкап">📥</button>
+          <button id="opt-export" class="radial-opt-btn" title="Скачать Бэкап (Полный)">📥</button>
+          <button id="opt-export-ai" class="radial-opt-btn" title="Скачать задачи для ИИ (Без личного)">📄</button>
           <label for="import-file" class="radial-opt-btn" title="Загрузить бэкап">📤</label>
           <input type="file" id="import-file" accept=".json" class="hidden">
         </div>
@@ -101,15 +92,31 @@
     </div>
   </div>
 
-  <!-- Модальное окно -->
+  <!-- Модальное окно (Подтемы) -->
   <div id="modal-overlay" class="overlay hidden">
     <div class="modal-card">
       <h3 id="modal-title">Новая подтема</h3>
-      <input type="text" id="modal-input-title" placeholder="Название...">
-      <textarea id="modal-input-body" placeholder="Описание..." class="hidden"></textarea>
+      <input type="text" id="modal-input-title" placeholder="Заголовок..." autocomplete="off" data-lpignore="true">
+      <textarea id="modal-input-body" placeholder="Содержимое подтемы..."></textarea>
       <div class="modal-actions">
         <button id="modal-cancel-btn" class="secondary-btn">Отмена</button>
         <button id="modal-save-btn" class="primary-btn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно (Задачи с будильником) -->
+  <div id="task-overlay" class="overlay hidden">
+    <div class="modal-card">
+      <h3>Новая задача</h3>
+      <input type="text" id="task-input-text" placeholder="Что нужно сделать?" autocomplete="off" data-lpignore="true">
+      <div class="alarm-wrapper">
+        <label for="task-input-time">⏰ Будильник:</label>
+        <input type="time" id="task-input-time">
+      </div>
+      <div class="modal-actions">
+        <button id="task-cancel-btn" class="secondary-btn">Отмена</button>
+        <button id="task-save-btn" class="primary-btn">Добавить</button>
       </div>
     </div>
   </div>
@@ -120,16 +127,17 @@
       <div class="ai-header">
         <h3>AI-Ассистент</h3>
         <div class="ai-header-controls">
-          <button id="clear-chat-btn" class="text-btn" title="Очистить чат">Очистить</button>
+          <button id="clear-chat-btn" class="text-btn">Очистить</button>
           <button id="close-ai-btn" class="icon-btn">✕</button>
         </div>
       </div>
       <div class="ai-key-box">
-        <input type="password" id="ai-key-input" placeholder="Введи OpenRouter API ключ (sk-or-v1-...)">
+        <!-- Блокировка автозаполнения паролей -->
+        <input type="password" id="ai-key-input" autocomplete="new-password" data-lpignore="true" placeholder="Введи OpenRouter API ключ">
       </div>
       <div id="ai-response-area" class="ai-chat-history"></div>
       <div class="ai-input-box">
-        <input type="text" id="ai-question-input" placeholder="Задай вопрос...">
+        <input type="text" id="ai-question-input" placeholder="Задай вопрос (видит подтемы и задачи)..." autocomplete="off" data-lpignore="true">
         <button id="ai-ask-btn" class="primary-btn">Отправить</button>
       </div>
     </div>
