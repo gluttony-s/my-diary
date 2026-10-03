@@ -1,323 +1,137 @@
-:root {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-color: #e0e0e0;
-    --accent-color: #bb86fc;
-    --accent-hover: #9b5de5;
-    --border-color: #333;
-    --danger-color: #cf6679;
-    --success-color: #03dac6;
-}
-
 * {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    line-height: 1.5;
+    background-color: #f4f6f9;
+    color: #333;
 }
 
-/* Header */
-header {
-    background-color: var(--card-bg);
-    padding: 15px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
-.header-top {
+.container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+    height: 100vh;
 }
 
-.header-title-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.calendar-picker {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-}
-
-.nav-btn, .icon-btn {
-    background: none;
-    border: none;
-    color: var(--accent-color);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 5px 10px;
-}
-
-.settings-btn {
-    font-size: 24px;
-}
-
-/* Week Strip */
-.week-strip {
-    display: flex;
-    justify-content: space-between;
-}
-
-.day-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 8px 5px;
-    border-radius: 8px;
-    flex: 1;
-    cursor: pointer;
-    position: relative;
-}
-
-.day-cell.selected {
-    background-color: var(--accent-color);
-    color: #000;
-    font-weight: bold;
-}
-
-.day-cell.has-note::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    width: 4px;
-    height: 4px;
-    background-color: var(--success-color);
-    border-radius: 50%;
-}
-.day-cell.selected.has-note::after {
-    background-color: #000;
-}
-
-.day-name { font-size: 12px; }
-.day-number { font-size: 16px; }
-
-/* Main Content */
-.day-content {
-    padding: 20px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.date-title {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #aaa;
-    font-size: 16px;
-}
-
-/* Mood */
-.mood-tracker {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-.mood-btn {
-    background: none;
-    border: 2px solid transparent;
-    font-size: 28px;
-    cursor: pointer;
-    border-radius: 50%;
-    padding: 5px;
-    transition: transform 0.2s;
-}
-.mood-btn.active {
-    border-color: var(--accent-color);
-    transform: scale(1.2);
-}
-
-/* Main Note */
-.main-note {
-    width: 100%;
-    height: 100px;
-    background-color: var(--card-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    resize: vertical;
-    font-size: 16px;
-    margin-bottom: 20px;
-}
-
-/* Sections */
-.section { margin-bottom: 30px; }
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
-}
-.add-btn {
-    background: none;
-    border: none;
-    color: var(--accent-color);
-    font-weight: bold;
-    cursor: pointer;
-}
-
-/* Subtopics */
-.subtopic-card {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-left: 4px solid var(--accent-color);
-}
-.subtopic-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-.subtopic-header h4 { font-size: 18px; margin-right: 10px; }
-.subtopic-body { font-size: 14px; color: #ccc; }
-
-/* Todos */
-.todo-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--card-bg);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-.todo-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    flex: 1;
-}
-.todo-item.done .todo-text {
-    text-decoration: line-through;
-    color: #777;
-}
-
-/* Photos */
-.photo-list {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-.photo-thumb-wrap {
-    position: relative;
-    width: 100px;
-    height: 100px;
-}
-.photo-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 8px;
-}
-.delete-photo-btn {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: var(--danger-color);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-/* Modals */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-.modal-overlay.hidden { display: none; }
-.modal-content {
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
+/* Боковая панель */
+.sidebar {
+    width: 280px;
+    background-color: #2c3e50;
+    color: #ecf0f1;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    max-height: 90vh;
+    gap: 20px;
     overflow-y: auto;
 }
-.modal-header {
+
+.sidebar h2 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #34495e;
+    padding-bottom: 5px;
+}
+
+.filter-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-list li label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    transition: color 0.2s;
+}
+
+.filter-list li label:hover {
+    color: #3498db;
+}
+
+/* Основной контент */
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.content-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e6ed;
 }
-.close-btn {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    cursor: pointer;
-}
-.modal-content input, .modal-content textarea {
-    width: 100%;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: #fff;
-    padding: 10px;
-    border-radius: 6px;
-}
-.modal-content textarea { height: 150px; resize: vertical; }
 
-.modal-actions {
+.actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+    gap: 15px;
 }
+
+/* Кнопки */
 .btn {
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
+    font-weight: 600;
     cursor: pointer;
-    font-weight: bold;
+    transition: transform 0.1s, background-color 0.2s;
 }
-.btn.cancel { background-color: transparent; color: #fff; border: 1px solid var(--border-color); }
-.btn.save { background-color: var(--accent-color); color: #000; }
-.btn.outline { background-color: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); display: inline-block; text-align: center; }
-.btn.full-width { width: 100%; margin-top: 10px; }
 
-/* Export Styles */
-.export-box {
-    background-color: var(--card-bg);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
+.btn:active {
+    transform: scale(0.97);
 }
-.secondary-box { border: 1px dashed var(--border-color); background: transparent; }
-.export-box h4 { margin-bottom: 5px; color: var(--accent-color); }
-.export-box .hint { font-size: 12px; color: #aaa; margin-bottom: 15px; }
-.filter-group { margin-bottom: 15px; }
-.filter-group label { display: block; font-size: 14px; margin-bottom: 5px; color: #ccc; }
-.date-range { display: flex; align-items: center; gap: 10px; }
-.checkboxes { display: flex; gap: 20px; }
-.checkboxes label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #fff;}
-.backup-actions { display: flex; flex-direction: column; gap: 10px; }
+
+.btn.primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #2980b9;
+}
+
+.btn.secondary {
+    background-color: #27ae60;
+    color: white;
+}
+
+.btn.secondary:hover {
+    background-color: #219653;
+}
+
+/* Сетка карточек */
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border-left: 4px solid #3498db;
+}
+
+.card h3 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.card p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #555;
+    white-space: pre-wrap;
+}
