@@ -329,12 +329,20 @@ const syncSearchInput = document.getElementById('sync-search-input');
 const syncDateStart = document.getElementById('sync-date-start');
 const syncDateEnd = document.getElementById('sync-date-end');
 const syncResults = document.getElementById('sync-results');
+const syncGroups = document.getElementById('sync-groups');
+const syncExistingResults = document.getElementById('sync-existing-results');
+const syncNewResults = document.getElementById('sync-new-results');
+const syncExistingCount = document.getElementById('sync-existing-count');
+const syncNewListCount = document.getElementById('sync-new-list-count');
+const syncSelectExistingBtn = document.getElementById('sync-select-existing-btn');
+const syncSelectNewBtn = document.getElementById('sync-select-new-btn');
 const syncResultsCount = document.getElementById('sync-results-count');
 const syncSelectedCount = document.getElementById('sync-selected-count');
 const syncNewCount = document.getElementById('sync-new-count');
 const syncMergeInput = document.getElementById('sync-merge-input');
 const syncFileName = document.getElementById('sync-file-name');
 const syncMergeSelectedBtn = document.getElementById('sync-merge-selected-btn');
+const syncMergeAllNewBtn = document.getElementById('sync-merge-all-new-btn');
 
 let syncTargetData = null;
 let syncTargetFileName = '';
@@ -437,75 +445,141 @@ function getVisibleSelectedSyncItems() {
     return getSyncItems().filter(item => syncSelectedItems.has(item.key));
 }
 
+function renderSyncResultItem(item, inTarget) {
+    const selected = syncSelectedItems.has(item.key);
+
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `sync-result-item ${selected ? 'selected' : ''} ${inTarget ? 'in-file' : 'new-item'}`;
+    row.setAttribute('aria-pressed', String(selected));
+
+    const checkbox = document.createElement('span');
+    checkbox.className = `sync-result-checkbox ${selected ? 'checked' : ''}`;
+    checkbox.textContent = selected ? '✓' : '';
+
+    const main = document.createElement('span');
+    main.className = 'sync-result-main';
+
+    const title = document.createElement('span');
+    title.className = 'sync-result-title';
+    title.textContent = item.title;
+
+    const meta = document.createElement('span');
+    meta.className = 'sync-result-meta';
+    meta.textContent =
+        `${item.date} • ${item.type === 'subtopic' ? 'Подтема' : 'Задача'}` +
+        (item.preview ? ` • ${item.preview}` : '');
+
+    main.appendChild(title);
+    main.appendChild(meta);
+
+    const badge = document.createElement('span');
+    badge.className = `sync-result-badge ${inTarget ? 'exists' : 'missing'}`;
+    badge.textContent = inTarget ? 'В файле' : 'Новая';
+
+    row.appendChild(checkbox);
+    row.appendChild(main);
+    row.appendChild(badge);
+
+    row.addEventListener('click', () => {
+        if (syncSelectedItems.has(item.key)) {
+            syncSelectedItems.delete(item.key);
+        } else {
+            syncSelectedItems.add(item.key);
+        }
+        renderSyncResults();
+    });
+
+    return row;
+}
+
+function getSelectedItemsFromList(items) {
+    return items.filter(item => syncSelectedItems.has(item.key));
+}
+
+function setSelectedState(items, selected) {
+    items.forEach(item => {
+        if (selected) syncSelectedItems.add(item.key);
+        else syncSelectedItems.delete(item.key);
+    });
+}
+
 function renderSyncResults() {
     const items = getSyncItems();
     syncResults.innerHTML = '';
+    syncExistingResults.innerHTML = '';
+    syncNewResults.innerHTML = '';
 
-    let newCount = 0;
+    if (!syncTargetData) {
+        syncGroups.classList.add('hidden');
+        syncResults.classList.remove('hidden');
+
+        if (items.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'sync-empty';
+            empty.textContent = 'Ничего не найдено. Попробуйте другой запрос.';
+            syncResults.appendChild(empty);
+        } else {
+            items.forEach(item => syncResults.appendChild(renderSyncResultItem(item, false)));
+        }
+
+        syncResultsCount.textContent = `Найдено: ${items.length}`;
+        syncSelectedCount.textContent = `Выбрано: ${getSelectedItemsFromList(items).length}`;
+        syncNewCount.textContent = 'Новых: —';
+        syncMergeSelectedBtn.disabled = true;
+        syncMergeAllNewBtn.disabled = true;
+        return;
+    }
+
+    syncResults.classList.add('hidden');
+    syncGroups.classList.remove('hidden');
+
+    const existingItems = [];
+    const newItems = [];
 
     items.forEach(item => {
-        const inTarget = isSyncItemInTarget(item);
-        const selected = syncSelectedItems.has(item.key);
-
-        if (!inTarget) newCount++;
-
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = `sync-result-item ${selected ? 'selected' : ''} ${inTarget ? 'in-file' : 'new-item'}`;
-        row.setAttribute('aria-pressed', String(selected));
-
-        const checkbox = document.createElement('span');
-        checkbox.className = `sync-result-checkbox ${selected ? 'checked' : ''}`;
-        checkbox.textContent = selected ? '✓' : '';
-
-        const main = document.createElement('span');
-        main.className = 'sync-result-main';
-
-        const title = document.createElement('span');
-        title.className = 'sync-result-title';
-        title.textContent = item.title;
-
-        const meta = document.createElement('span');
-        meta.className = 'sync-result-meta';
-        meta.textContent =
-            `${item.date} • ${item.type === 'subtopic' ? 'Подтема' : 'Задача'}` +
-            (item.preview ? ` • ${item.preview}` : '');
-
-        main.appendChild(title);
-        main.appendChild(meta);
-
-        const badge = document.createElement('span');
-        badge.className = `sync-result-badge ${inTarget ? 'exists' : 'missing'}`;
-        badge.textContent = inTarget ? 'В файле' : 'Нет в файле';
-
-        row.appendChild(checkbox);
-        row.appendChild(main);
-        row.appendChild(badge);
-
-        row.addEventListener('click', () => {
-            if (syncSelectedItems.has(item.key)) {
-                syncSelectedItems.delete(item.key);
-            } else {
-                syncSelectedItems.add(item.key);
-            }
-            renderSyncResults();
-        });
-
-        syncResults.appendChild(row);
+        if (isSyncItemInTarget(item)) existingItems.push(item);
+        else newItems.push(item);
     });
 
-    syncResultsCount.textContent = `Найдено: ${items.length}`;
-    syncSelectedCount.textContent = `Выбрано: ${syncSelectedItems.size}`;
-    syncNewCount.textContent = `Новых: ${newCount}`;
-    syncMergeSelectedBtn.disabled =
-        !syncTargetData || syncSelectedItems.size === 0;
+    existingItems.forEach(item => syncExistingResults.appendChild(renderSyncResultItem(item, true)));
+    newItems.forEach(item => syncNewResults.appendChild(renderSyncResultItem(item, false)));
 
-    if (items.length === 0) {
+    if (existingItems.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'sync-empty';
-        empty.textContent = 'Ничего не найдено. Попробуйте другой запрос.';
-        syncResults.appendChild(empty);
+        empty.textContent = 'Подходящих записей, которые уже есть в файле, нет.';
+        syncExistingResults.appendChild(empty);
     }
+
+    if (newItems.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'sync-empty';
+        empty.textContent = 'Новых записей по этому поиску нет.';
+        syncNewResults.appendChild(empty);
+    }
+
+    const selectedVisible = getSelectedItemsFromList(items);
+
+    syncResultsCount.textContent = `Найдено: ${items.length}`;
+    syncSelectedCount.textContent = `Выбрано: ${selectedVisible.length}`;
+    syncNewCount.textContent = `Новых: ${newItems.length}`;
+    syncExistingCount.textContent = existingItems.length;
+    syncNewListCount.textContent = newItems.length;
+
+    syncMergeSelectedBtn.disabled =
+        selectedVisible.filter(item => !isSyncItemInTarget(item)).length === 0;
+    syncMergeAllNewBtn.disabled = newItems.length === 0;
+
+    syncSelectExistingBtn.textContent =
+        existingItems.length > 0 && existingItems.every(item => syncSelectedItems.has(item.key))
+            ? 'Снять все'
+            : 'Выбрать все';
+
+    syncSelectNewBtn.textContent =
+        newItems.length > 0 && newItems.every(item => syncSelectedItems.has(item.key))
+            ? 'Снять все'
+            : 'Выбрать все';
 }
 
 function buildSelectedData(items) {
@@ -581,6 +655,11 @@ function mergeSelectedItemsIntoTarget(items) {
 
 document.getElementById('opt-smart-export').addEventListener('click', () => {
     syncSelectedItems.clear();
+    syncTargetData = null;
+    syncTargetFileName = '';
+    syncFileName.textContent = 'Файл для добавления не выбран';
+    syncFileName.title = '';
+    syncMergeInput.value = '';
     syncOverlay.classList.remove('hidden');
     radialOptions.classList.add('hidden');
     renderSyncResults();
@@ -594,6 +673,22 @@ document.getElementById('sync-close-btn').addEventListener('click', () => {
 [syncSearchInput, syncDateStart, syncDateEnd].forEach(input => {
     input.addEventListener('input', renderSyncResults);
     input.addEventListener('change', renderSyncResults);
+});
+
+syncSelectExistingBtn.addEventListener('click', () => {
+    if (!syncTargetData) return;
+    const items = getSyncItems().filter(item => isSyncItemInTarget(item));
+    const shouldSelect = !items.length || !items.every(item => syncSelectedItems.has(item.key));
+    setSelectedState(items, shouldSelect);
+    renderSyncResults();
+});
+
+syncSelectNewBtn.addEventListener('click', () => {
+    if (!syncTargetData) return;
+    const items = getSyncItems().filter(item => !isSyncItemInTarget(item));
+    const shouldSelect = !items.length || !items.every(item => syncSelectedItems.has(item.key));
+    setSelectedState(items, shouldSelect);
+    renderSyncResults();
 });
 
 syncMergeInput.addEventListener('change', (e) => {
@@ -654,13 +749,6 @@ syncMergeSelectedBtn.addEventListener('click', () => {
     }
 
     const selected = getVisibleSelectedSyncItems();
-
-    if (selected.length === 0) {
-        alert('Сначала выберите записи, которые нужно добавить.');
-        return;
-    }
-
-    // Добавляем только записи, которых ещё нет в целевом файле.
     const newItems = selected.filter(item => !isSyncItemInTarget(item));
 
     if (newItems.length === 0) {
@@ -669,6 +757,7 @@ syncMergeSelectedBtn.addEventListener('click', () => {
     }
 
     mergeSelectedItemsIntoTarget(newItems);
+    newItems.forEach(item => syncSelectedItems.delete(item.key));
 
     downloadFile(
         JSON.stringify(syncTargetData, null, 2),
@@ -676,6 +765,31 @@ syncMergeSelectedBtn.addEventListener('click', () => {
     );
 
     alert(`Добавлено новых записей: ${newItems.length}. Обновлённый файл скачан.`);
+    renderSyncResults();
+});
+
+syncMergeAllNewBtn.addEventListener('click', () => {
+    if (!syncTargetData) {
+        alert('Сначала выберите существующий JSON-файл.');
+        return;
+    }
+
+    const newItems = getSyncItems().filter(item => !isSyncItemInTarget(item));
+
+    if (newItems.length === 0) {
+        alert('Новых записей по текущему поиску нет.');
+        return;
+    }
+
+    mergeSelectedItemsIntoTarget(newItems);
+    newItems.forEach(item => syncSelectedItems.delete(item.key));
+
+    downloadFile(
+        JSON.stringify(syncTargetData, null, 2),
+        syncTargetFileName || `diary_merged_${formatDateKey(new Date())}.json`
+    );
+
+    alert(`Добавлены все новые записи: ${newItems.length}. Обновлённый файл скачан.`);
     renderSyncResults();
 });
 

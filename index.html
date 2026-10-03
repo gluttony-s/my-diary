@@ -145,8 +145,33 @@
 
       <div id="sync-results" class="sync-results" aria-live="polite"></div>
 
+      <div id="sync-groups" class="sync-groups hidden">
+        <section class="sync-group">
+          <div class="sync-group-header">
+            <div>
+              <h4>Есть в файле</h4>
+              <span id="sync-existing-count" class="sync-group-count">0</span>
+            </div>
+            <button id="sync-select-existing-btn" type="button" class="sync-mini-btn">Выбрать все</button>
+          </div>
+          <div id="sync-existing-results" class="sync-results sync-group-results" aria-live="polite"></div>
+        </section>
+
+        <section class="sync-group sync-group-new">
+          <div class="sync-group-header">
+            <div>
+              <h4>Новые</h4>
+              <span id="sync-new-list-count" class="sync-group-count">0</span>
+            </div>
+            <button id="sync-select-new-btn" type="button" class="sync-mini-btn">Выбрать все</button>
+          </div>
+          <div id="sync-new-results" class="sync-results sync-group-results" aria-live="polite"></div>
+        </section>
+      </div>
+
       <div class="modal-actions sync-actions">
         <button id="sync-export-new-btn" class="secondary-btn">Скачать выбранное</button>
+        <button id="sync-merge-all-new-btn" class="secondary-btn" disabled>Добавить все новые</button>
         <button id="sync-merge-selected-btn" class="primary-btn" disabled>Добавить выбранное в файл</button>
       </div>
     </div>
