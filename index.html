@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Личный Дневник & Планировщик</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
@@ -111,26 +111,43 @@
     </div>
   </div>
 
-  <!-- Умный Экспорт / Слияние -->
+  <!-- Умный поиск / выбор записей / слияние -->
   <div id="sync-overlay" class="overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card sync-modal-card">
       <div class="modal-header">
-        <h3>Умный Экспорт</h3>
-        <button id="sync-close-btn" class="icon-close-btn">✕</button>
-      </div>
-      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;">Найдите нужные записи и скачайте их отдельно, либо влейте в уже существующий файл.</p>
-      
-      <input type="text" id="sync-search-input" placeholder="Поиск по названию (напр. тренировка)">
-      
-      <div class="alarm-wrapper" style="margin-top: 10px;">
-        <label>С:</label> <input type="date" id="sync-date-start">
-        <label>По:</label> <input type="date" id="sync-date-end">
+        <div>
+          <h3>Умный поиск и добавление</h3>
+          <p class="sync-hint">Начните вводить название — список обновляется сразу. Можно выбрать нужные записи галочками.</p>
+        </div>
+        <button id="sync-close-btn" class="icon-close-btn" aria-label="Закрыть">✕</button>
       </div>
 
-      <div class="modal-actions" style="margin-top: 20px; flex-direction: column; gap: 10px;">
-        <button id="sync-export-new-btn" class="primary-btn" style="width: 100%;">Скачать как новый файл</button>
-        <label for="sync-merge-input" class="secondary-btn" style="text-align: center; display: block; cursor: pointer;">Влить в существующий файл</label>
+      <input type="search" id="sync-search-input"
+             placeholder="Поиск по задачам и подтемам, например: Т"
+             autocomplete="off">
+
+      <div class="sync-filters">
+        <label>С <input type="date" id="sync-date-start"></label>
+        <label>По <input type="date" id="sync-date-end"></label>
+      </div>
+
+      <div class="sync-file-row">
+        <label for="sync-merge-input" class="secondary-btn sync-file-btn">Выбрать существующий JSON</label>
         <input type="file" id="sync-merge-input" accept=".json" class="hidden">
+        <span id="sync-file-name" class="sync-file-name">Файл для добавления не выбран</span>
+      </div>
+
+      <div class="sync-summary">
+        <span id="sync-results-count">Найдено: 0</span>
+        <span id="sync-selected-count">Выбрано: 0</span>
+        <span id="sync-new-count">Новых: 0</span>
+      </div>
+
+      <div id="sync-results" class="sync-results" aria-live="polite"></div>
+
+      <div class="modal-actions sync-actions">
+        <button id="sync-export-new-btn" class="secondary-btn">Скачать выбранное</button>
+        <button id="sync-merge-selected-btn" class="primary-btn" disabled>Добавить выбранное в файл</button>
       </div>
     </div>
   </div>

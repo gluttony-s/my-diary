@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diary-cache-v3'; 
+const CACHE_NAME = 'diary-cache-v4'; 
 
 // Файлы приложения для кэширования (работа офлайн)
 const urlsToCache = [

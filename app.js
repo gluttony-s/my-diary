@@ -323,108 +323,360 @@ document.getElementById('import-file').addEventListener('change', (e) => {
 });
 
 
-// --- УМНЫЙ ЭКСПОРТ И СЛИЯНИЕ (СИНХРОНИЗАЦИЯ) ---
+// --- УМНЫЙ ПОИСК / ВЫБОР / СЛИЯНИЕ ---
 const syncOverlay = document.getElementById('sync-overlay');
-document.getElementById('opt-smart-export').addEventListener('click', () => {
-    syncOverlay.classList.remove('hidden');
-    radialOptions.classList.add('hidden');
-});
-document.getElementById('sync-close-btn').addEventListener('click', () => syncOverlay.classList.add('hidden'));
+const syncSearchInput = document.getElementById('sync-search-input');
+const syncDateStart = document.getElementById('sync-date-start');
+const syncDateEnd = document.getElementById('sync-date-end');
+const syncResults = document.getElementById('sync-results');
+const syncResultsCount = document.getElementById('sync-results-count');
+const syncSelectedCount = document.getElementById('sync-selected-count');
+const syncNewCount = document.getElementById('sync-new-count');
+const syncMergeInput = document.getElementById('sync-merge-input');
+const syncFileName = document.getElementById('sync-file-name');
+const syncMergeSelectedBtn = document.getElementById('sync-merge-selected-btn');
 
-// Функция фильтрации данных по параметрам
-function getFilteredData() {
-    const keyword = document.getElementById('sync-search-input').value.toLowerCase().trim();
-    const dateStart = document.getElementById('sync-date-start').value;
-    const dateEnd = document.getElementById('sync-date-end').value;
-    
-    let filtered = {};
+let syncTargetData = null;
+let syncTargetFileName = '';
+let syncSelectedItems = new Set();
+
+function normalizeSyncText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function makeSyncItemKey(date, type, id) {
+    return `${date}|${type}|${String(id)}`;
+}
+
+function getSyncItems() {
+    const keyword = syncSearchInput.value.toLowerCase().trim();
+    const dateStart = syncDateStart.value;
+    const dateEnd = syncDateEnd.value;
+    const items = [];
 
     Object.keys(diaryData).forEach(date => {
-        // Проверка диапазона дат
         if (dateStart && date < dateStart) return;
         if (dateEnd && date > dateEnd) return;
 
-        const day = diaryData[date];
-        let dayHasMatch = false;
-        let matchedSubtopics = [];
+        const day = diaryData[date] || {};
 
-        // Фильтр по подтемам
-        if (day.subtopics) {
-            matchedSubtopics = day.subtopics.filter(s => 
-                !keyword || s.title.toLowerCase().includes(keyword) || (s.body && s.body.toLowerCase().includes(keyword))
-            );
-            if (matchedSubtopics.length > 0) dayHasMatch = true;
+        // Ищем одновременно по подтемам и задачам.
+        (day.subtopics || []).forEach(subtopic => {
+            const title = String(subtopic.title || '');
+            const body = String(subtopic.body || '');
+
+            if (
+                !keyword ||
+                title.toLowerCase().includes(keyword) ||
+                body.toLowerCase().includes(keyword)
+            ) {
+                items.push({
+                    key: makeSyncItemKey(date, 'subtopic', subtopic.id),
+                    date,
+                    type: 'subtopic',
+                    id: subtopic.id,
+                    title: title || 'Без названия',
+                    preview: body,
+                    data: { ...subtopic }
+                });
+            }
+        });
+
+        (day.todos || []).forEach(todo => {
+            const title = String(todo.text || '');
+
+            if (!keyword || title.toLowerCase().includes(keyword)) {
+                items.push({
+                    key: makeSyncItemKey(date, 'todo', todo.id),
+                    date,
+                    type: 'todo',
+                    id: todo.id,
+                    title: title || 'Без названия',
+                    preview: todo.alarmTime ? `Будильник: ${todo.alarmTime}` : '',
+                    data: { ...todo }
+                });
+            }
+        });
+    });
+
+    items.sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        if (a.type !== b.type) return a.type.localeCompare(b.type);
+        return a.title.localeCompare(b.title, 'ru');
+    });
+
+    return items.slice(0, 300);
+}
+
+function getTargetCollection(item) {
+    if (!syncTargetData || !syncTargetData[item.date]) return [];
+
+    const name = item.type === 'subtopic' ? 'subtopics' : 'todos';
+    return syncTargetData[item.date][name] || [];
+}
+
+function isSyncItemInTarget(item) {
+    const collection = getTargetCollection(item);
+
+    if (collection.some(entry => String(entry.id) === String(item.id))) {
+        return true;
+    }
+
+    // Если ID разный, считаем совпадением одинаковое название
+    // в ту же дату и в той же категории.
+    const sourceText = normalizeSyncText(
+        item.type === 'subtopic' ? item.data.title : item.data.text
+    );
+
+    return collection.some(entry => normalizeSyncText(
+        item.type === 'subtopic' ? entry.title : entry.text
+    ) === sourceText);
+}
+
+function getVisibleSelectedSyncItems() {
+    return getSyncItems().filter(item => syncSelectedItems.has(item.key));
+}
+
+function renderSyncResults() {
+    const items = getSyncItems();
+    syncResults.innerHTML = '';
+
+    let newCount = 0;
+
+    items.forEach(item => {
+        const inTarget = isSyncItemInTarget(item);
+        const selected = syncSelectedItems.has(item.key);
+
+        if (!inTarget) newCount++;
+
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = `sync-result-item ${selected ? 'selected' : ''} ${inTarget ? 'in-file' : 'new-item'}`;
+        row.setAttribute('aria-pressed', String(selected));
+
+        const checkbox = document.createElement('span');
+        checkbox.className = `sync-result-checkbox ${selected ? 'checked' : ''}`;
+        checkbox.textContent = selected ? '✓' : '';
+
+        const main = document.createElement('span');
+        main.className = 'sync-result-main';
+
+        const title = document.createElement('span');
+        title.className = 'sync-result-title';
+        title.textContent = item.title;
+
+        const meta = document.createElement('span');
+        meta.className = 'sync-result-meta';
+        meta.textContent =
+            `${item.date} • ${item.type === 'subtopic' ? 'Подтема' : 'Задача'}` +
+            (item.preview ? ` • ${item.preview}` : '');
+
+        main.appendChild(title);
+        main.appendChild(meta);
+
+        const badge = document.createElement('span');
+        badge.className = `sync-result-badge ${inTarget ? 'exists' : 'missing'}`;
+        badge.textContent = inTarget ? 'В файле' : 'Нет в файле';
+
+        row.appendChild(checkbox);
+        row.appendChild(main);
+        row.appendChild(badge);
+
+        row.addEventListener('click', () => {
+            if (syncSelectedItems.has(item.key)) {
+                syncSelectedItems.delete(item.key);
+            } else {
+                syncSelectedItems.add(item.key);
+            }
+            renderSyncResults();
+        });
+
+        syncResults.appendChild(row);
+    });
+
+    syncResultsCount.textContent = `Найдено: ${items.length}`;
+    syncSelectedCount.textContent = `Выбрано: ${syncSelectedItems.size}`;
+    syncNewCount.textContent = `Новых: ${newCount}`;
+    syncMergeSelectedBtn.disabled =
+        !syncTargetData || syncSelectedItems.size === 0;
+
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'sync-empty';
+        empty.textContent = 'Ничего не найдено. Попробуйте другой запрос.';
+        syncResults.appendChild(empty);
+    }
+}
+
+function buildSelectedData(items) {
+    const selectedData = {};
+
+    items.forEach(item => {
+        if (!selectedData[item.date]) {
+            selectedData[item.date] = {
+                mainNote: '',
+                mood: null,
+                subtopics: [],
+                todos: [],
+                photos: []
+            };
         }
 
-        if (dayHasMatch) {
-            filtered[date] = {
-                ...day,
-                subtopics: matchedSubtopics
-            };
+        if (item.type === 'subtopic') {
+            selectedData[item.date].subtopics.push({ ...item.data });
+        } else {
+            selectedData[item.date].todos.push({ ...item.data });
         }
     });
 
-    return filtered;
+    return selectedData;
 }
 
-// 1. Скачать отфильтрованное как новый файл
-document.getElementById('sync-export-new-btn').addEventListener('click', () => {
-    const dataToExport = getFilteredData();
-    if (Object.keys(dataToExport).length === 0) {
-        alert('Ничего не найдено по этим фильтрам.');
-        return;
+function mergeSelectedItemsIntoTarget(items) {
+    if (!syncTargetData) {
+        throw new Error('Файл для добавления не выбран.');
     }
-    const keyword = document.getElementById('sync-search-input').value.trim() || 'filtered';
-    downloadFile(JSON.stringify(dataToExport, null, 2), `${keyword}_${formatDateKey(new Date())}.json`);
+
+    items.forEach(item => {
+        if (!syncTargetData[item.date]) {
+            syncTargetData[item.date] = {
+                mainNote: '',
+                mood: null,
+                subtopics: [],
+                todos: [],
+                photos: []
+            };
+        }
+
+        const collectionName = item.type === 'subtopic' ? 'subtopics' : 'todos';
+        const collection = syncTargetData[item.date][collectionName] || [];
+
+        const sameIdIndex = collection.findIndex(
+            entry => String(entry.id) === String(item.id)
+        );
+
+        if (sameIdIndex >= 0) {
+            collection[sameIdIndex] = { ...item.data };
+        } else {
+            const sourceText = normalizeSyncText(
+                item.type === 'subtopic' ? item.data.title : item.data.text
+            );
+
+            const sameTextIndex = collection.findIndex(entry =>
+                normalizeSyncText(
+                    item.type === 'subtopic' ? entry.title : entry.text
+                ) === sourceText
+            );
+
+            if (sameTextIndex >= 0) {
+                collection[sameTextIndex] = { ...item.data };
+            } else {
+                collection.push({ ...item.data });
+            }
+        }
+
+        syncTargetData[item.date][collectionName] = collection;
+    });
+}
+
+document.getElementById('opt-smart-export').addEventListener('click', () => {
+    syncSelectedItems.clear();
+    syncOverlay.classList.remove('hidden');
+    radialOptions.classList.add('hidden');
+    renderSyncResults();
+    syncSearchInput.focus();
+});
+
+document.getElementById('sync-close-btn').addEventListener('click', () => {
     syncOverlay.classList.add('hidden');
 });
 
-// 2. Влить отфильтрованное в существующий файл
-document.getElementById('sync-merge-input').addEventListener('change', (e) => {
+[syncSearchInput, syncDateStart, syncDateEnd].forEach(input => {
+    input.addEventListener('input', renderSyncResults);
+    input.addEventListener('change', renderSyncResults);
+});
+
+syncMergeInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const dataToMerge = getFilteredData();
-    if (Object.keys(dataToMerge).length === 0) {
-        alert('Нет данных для слияния по текущим фильтрам.');
-        e.target.value = '';
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+        try {
+            const parsed = JSON.parse(event.target.result);
+
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                throw new Error('Некорректная структура');
+            }
+
+            syncTargetData = parsed;
+            syncTargetFileName = file.name;
+            syncFileName.textContent = `Выбран: ${file.name}`;
+            syncFileName.title = file.name;
+
+            renderSyncResults();
+        } catch (err) {
+            syncTargetData = null;
+            syncTargetFileName = '';
+            syncFileName.textContent = 'Не удалось прочитать JSON';
+            alert('Ошибка: файл не является корректным JSON дневника.');
+            e.target.value = '';
+            renderSyncResults();
+        }
+    };
+
+    reader.readAsText(file);
+});
+
+document.getElementById('sync-export-new-btn').addEventListener('click', () => {
+    const selected = getVisibleSelectedSyncItems();
+
+    if (selected.length === 0) {
+        alert('Сначала выберите записи в списке.');
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            // Читаем старый файл
-            let existingData = JSON.parse(event.target.result);
-            
-            // Вливаем новые отфильтрованные данные
-            Object.keys(dataToMerge).forEach(date => {
-                if (!existingData[date]) {
-                    existingData[date] = dataToMerge[date];
-                } else {
-                    // Если день уже есть, аккуратно добавляем подтемы, избегая дубликатов по ID
-                    const existingSubtopics = existingData[date].subtopics || [];
-                    const newSubtopics = dataToMerge[date].subtopics || [];
-                    
-                    newSubtopics.forEach(newSub => {
-                        const idx = existingSubtopics.findIndex(s => s.id === newSub.id);
-                        if (idx >= 0) existingSubtopics[idx] = newSub; // Обновляем
-                        else existingSubtopics.push(newSub); // Добавляем новую
-                    });
-                    existingData[date].subtopics = existingSubtopics;
-                }
-            });
+    const dataToExport = buildSelectedData(selected);
+    const keyword =
+        syncSearchInput.value.trim().replace(/[\\/:*?"<>|]+/g, '_') || 'selected';
 
-            // Скачиваем обновленный результат
-            downloadFile(JSON.stringify(existingData, null, 2), file.name);
-            alert('Слияние прошло успешно! Обновленный файл скачан.');
-            syncOverlay.classList.add('hidden');
-        } catch (err) {
-            alert('Ошибка чтения структуры старого файла!');
-        }
-        e.target.value = ''; // Сбрасываем input
-    };
-    reader.readAsText(file);
+    downloadFile(
+        JSON.stringify(dataToExport, null, 2),
+        `${keyword}_${formatDateKey(new Date())}.json`
+    );
+});
+
+syncMergeSelectedBtn.addEventListener('click', () => {
+    if (!syncTargetData) {
+        alert('Сначала выберите существующий JSON-файл.');
+        return;
+    }
+
+    const selected = getVisibleSelectedSyncItems();
+
+    if (selected.length === 0) {
+        alert('Сначала выберите записи, которые нужно добавить.');
+        return;
+    }
+
+    // Добавляем только записи, которых ещё нет в целевом файле.
+    const newItems = selected.filter(item => !isSyncItemInTarget(item));
+
+    if (newItems.length === 0) {
+        alert('Среди выбранных записей нет новых для этого файла.');
+        return;
+    }
+
+    mergeSelectedItemsIntoTarget(newItems);
+
+    downloadFile(
+        JSON.stringify(syncTargetData, null, 2),
+        syncTargetFileName || `diary_merged_${formatDateKey(new Date())}.json`
+    );
+
+    alert(`Добавлено новых записей: ${newItems.length}. Обновлённый файл скачан.`);
+    renderSyncResults();
 });
 
 function downloadFile(content, fileName) {
