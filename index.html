@@ -2,165 +2,40 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Мой Дневник</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер задач и тренировок</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Для Markdown и формул (оставляем для красоты отображения внутри) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
-    <header>
-        <div class="header-top">
-            <button class="nav-btn" id="prev-week">◀</button>
-            <div class="header-title-container">
-                <h2 id="month-title">Месяц Год</h2>
-                <input type="date" id="calendar-picker" class="calendar-picker">
-            </div>
-            <button class="nav-btn" id="next-week">▶</button>
-            <button class="icon-btn settings-btn" id="open-export-btn" title="Экспорт и Настройки">⚙️</button>
-        </div>
-        <div class="week-strip" id="week-days">
-            <!-- Дни недели генерируются в JS -->
-        </div>
-    </header>
+    <div class="container">
+        <!-- Боковое меню -->
+        <aside class="sidebar">
+            <h2>Темы</h2>
+            <ul class="filter-list" id="topic-list">
+                <!-- Генерируется через JS -->
+            </ul>
 
-    <main class="day-content">
-        <h3 id="selected-date-title" class="date-title">Дата</h3>
-        
-        <!-- Настроение -->
-        <div class="mood-tracker">
-            <button class="mood-btn" data-mood="great">😁</button>
-            <button class="mood-btn" data-mood="good">🙂</button>
-            <button class="mood-btn" data-mood="neutral">😐</button>
-            <button class="mood-btn" data-mood="bad">😔</button>
-            <button class="mood-btn" data-mood="awful">🤬</button>
-        </div>
+            <h2>Дни</h2>
+            <ul class="filter-list" id="day-list">
+                <!-- Генерируется через JS -->
+            </ul>
+        </aside>
 
-        <!-- Главная заметка -->
-        <textarea id="main-note-input" class="main-note" placeholder="Как прошел день? (основная мысль)..."></textarea>
-
-        <!-- Подтемы -->
-        <section class="section">
-            <div class="section-header">
-                <h3>Подтемы и записи</h3>
-                <button class="add-btn" id="opt-add-topic">+ Добавить</button>
-            </div>
-            <div id="subtopics-container" class="subtopics-list"></div>
-        </section>
-
-        <!-- Задачи -->
-        <section class="section">
-            <div class="section-header">
-                <h3>Задачи (<span id="todos-counter">0/0</span>)</h3>
-                <button class="add-btn" id="opt-add-task">+ Задача</button>
-            </div>
-            <div id="todo-list" class="todo-list"></div>
-        </section>
-
-        <!-- Фото -->
-        <section class="section">
-            <div class="section-header">
-                <h3>Фотографии</h3>
-                <label class="add-btn photo-add-label">
-                    + Фото
-                    <input type="file" id="photo-input" accept="image/*" hidden>
-                </label>
-            </div>
-            <div id="photo-list" class="photo-list"></div>
-        </section>
-    </main>
-
-    <!-- Модальное окно: Подтема -->
-    <div id="modal-overlay" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Новая подтема</h3>
-                <button class="close-btn" id="modal-cancel-top-btn">✕</button>
-            </div>
-            <input type="text" id="modal-input-title" placeholder="Название (например: Тренировка спины)">
-            <textarea id="modal-input-body" placeholder="Описание (поддерживается Markdown и формулы $$)"></textarea>
-            <div class="modal-actions">
-                <button class="btn cancel" id="modal-cancel-btn">Отмена</button>
-                <button class="btn save" id="modal-save-btn">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Задача -->
-    <div id="task-overlay" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Новая задача</h3>
-                <button class="close-btn" id="task-cancel-top-btn">✕</button>
-            </div>
-            <input type="text" id="task-input-text" placeholder="Что нужно сделать?">
-            <input type="time" id="task-input-time">
-            <div class="modal-actions">
-                <button class="btn cancel" id="task-cancel-btn">Отмена</button>
-                <button class="btn save" id="task-save-btn">Добавить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Экспорт и Данные -->
-    <div id="export-overlay" class="modal-overlay hidden">
-        <div class="modal-content export-modal-content">
-            <div class="modal-header">
-                <h3>Управление данными</h3>
-                <button class="close-btn" id="close-export-btn">✕</button>
-            </div>
+        <!-- Основная область -->
+        <main class="content">
+            <header class="content-header">
+                <h1>Выбранные записи</h1>
+                <div class="actions">
+                    <button id="btn-download-new" class="btn primary">Скачать как новый файл</button>
+                    <button id="btn-append-file" class="btn secondary">Добавить в существующий файл</button>
+                </div>
+            </header>
             
-            <div class="export-box">
-                <h4>Сборка текста для нейросети</h4>
-                <p class="hint">Удобно выгрузить тренировки, лекции или задачи за нужные дни.</p>
-                
-                <div class="filter-group">
-                    <label>Период (если пусто — выгрузит всё):</label>
-                    <div class="date-range">
-                        <input type="date" id="exp-start"> <span>—</span> <input type="date" id="exp-end">
-                    </div>
-                </div>
-
-                <div class="filter-group checkboxes">
-                    <label><input type="checkbox" id="exp-subtopics" checked> Подтемы</label>
-                    <label><input type="checkbox" id="exp-tasks" checked> Задачи</label>
-                </div>
-
-                <div class="filter-group">
-                    <label>Фильтр по слову (опционально):</label>
-                    <input type="text" id="exp-keyword" placeholder="Например: тренировка">
-                </div>
-
-                <button class="btn save full-width" id="btn-export-text">Скачать текстом (.txt)</button>
+            <div id="data-container" class="data-grid">
+                <!-- Карточки с данными генерируются через JS -->
             </div>
-
-            <div class="export-box secondary-box">
-                <h4>Резервная копия приложения</h4>
-                <div class="backup-actions">
-                    <button class="btn" id="btn-backup-json">Сохранить бэкап (.json)</button>
-                    <label class="btn outline">
-                        Загрузить бэкап
-                        <input type="file" id="import-file" accept=".json" hidden>
-                    </label>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
-
     <script src="app.js"></script>
-    
-    <!-- Подключение Service Worker для работы офлайн -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW зарегистрирован!', reg))
-            .catch(err => console.error('Ошибка регистрации SW', err));
-        });
-      }
-    </script>
 </body>
 </html>
