@@ -1,28 +1,17 @@
 :root {
-  /* Очень темные, приглушенные фоны (почти черный с легким оттенком сливы) */
   --bg-main: #0f0a12;
   --card-bg: #18111c;
   --card-border: #2a1f31;
-  
-  /* Спокойный, не яркий текст */
   --text-main: #c4b5cd;
   --text-muted: #796b80;
-  
-  /* Матовые, десатурированные градиенты */
   --grad-accent: linear-gradient(135deg, #664d75 0%, #4b3559 100%);
   --grad-purple: linear-gradient(135deg, #573c66 0%, #3e274a 100%);
   --grad-pink: linear-gradient(135deg, #73455b 0%, #542f41 100%);
   --grad-task: linear-gradient(135deg, #613b69 0%, #45264a 100%);
-  
-  /* Пыльный лиловый как основной акцент */
   --color-accent: #7a5e8c;
   --color-accent-rgb: 122, 94, 140;
-
-  /* Яркие контуры для кнопок */
   --btn-outline: #9c78b0;
   --btn-outline-active: #c5a6d6;
-
-  /* НОВАЯ ПЕРЕМЕННАЯ: Очень яркий цвет для навигации и выбранного дня */
   --highlight-bright: #ebd4f5;
 }
 
@@ -35,7 +24,7 @@
 
 body {
   background-color: var(--bg-main);
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(var(--color-accent-rgb), 0.04) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(115, 69, 91, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
@@ -43,21 +32,20 @@ body {
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  padding: 12px;
+  padding: 24px;
 }
 
 .app-container {
   width: 100%;
-  max-width: 650px;
+  max-width: 1120px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   position: relative;
   padding-bottom: 90px;
   touch-action: pan-y;
 }
 
-/* Шапка */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -71,7 +59,6 @@ body {
   padding: 8px 18px;
   border-radius: 12px;
   background: var(--card-bg);
-  /* Очень яркий контур и свечение для месяца */
   border: 2px solid var(--highlight-bright);
   box-shadow: 0 0 12px rgba(235, 212, 245, 0.3);
 }
@@ -79,7 +66,6 @@ body {
 .month-selector h2 {
   font-size: 16px;
   font-weight: 700;
-  /* Яркий сплошной цвет вместо градиента */
   color: var(--highlight-bright);
   text-shadow: 0 0 10px rgba(235, 212, 245, 0.4);
   user-select: none;
@@ -97,7 +83,6 @@ body {
 }
 
 .nav-btn {
-  /* Яркий фон, контур и иконки для стрелочек */
   background: rgba(235, 212, 245, 0.05);
   border: 2px solid var(--highlight-bright);
   color: var(--highlight-bright);
@@ -111,11 +96,8 @@ body {
   transition: all 0.2s;
 }
 
-.nav-btn:active {
-  transform: scale(0.92);
-}
+.nav-btn:active { transform: scale(0.92); }
 
-/* Дни недели */
 .week-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -138,7 +120,6 @@ body {
 }
 
 .day-cell.selected {
-  /* Очень яркое выделение для выбранного дня */
   border: 2px solid var(--highlight-bright);
   background: linear-gradient(180deg, rgba(var(--color-accent-rgb), 0.35) 0%, var(--card-bg) 100%);
   box-shadow: 0 0 15px rgba(235, 212, 245, 0.3);
@@ -146,7 +127,6 @@ body {
 }
 
 .day-cell.selected .day-num {
-  /* Подсветка цифры выбранного дня */
   color: #ffffff;
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
@@ -158,7 +138,7 @@ body {
   bottom: 5px;
   width: 5px;
   height: 5px;
-  background: var(--highlight-bright); /* Сделаем точку яркой, в тон выбранному дню */
+  background: var(--highlight-bright);
   border-radius: 50%;
   box-shadow: 0 0 5px rgba(235, 212, 245, 0.6);
 }
@@ -175,7 +155,6 @@ body {
   transition: all 0.2s;
 }
 
-/* Статус дня */
 .day-status-bar {
   display: flex;
   justify-content: space-between;
@@ -189,10 +168,7 @@ body {
   color: var(--text-main);
 }
 
-.mood-selector {
-  display: flex;
-  gap: 6px;
-}
+.mood-selector { display: flex; gap: 6px; }
 
 .mood-btn {
   background: var(--card-bg);
@@ -213,7 +189,6 @@ body {
   opacity: 1;
 }
 
-/* Контент дня */
 .day-content {
   display: flex;
   flex-direction: column;
@@ -235,11 +210,8 @@ body {
   transition: border-color 0.2s;
 }
 
-.main-note-section textarea:focus {
-  border-color: var(--btn-outline-active);
-}
+.main-note-section textarea:focus { border-color: var(--btn-outline-active); }
 
-/* Центральные кнопки */
 .center-action-buttons {
   display: flex;
   gap: 12px;
@@ -262,23 +234,11 @@ body {
   color: #e5dbe8;
 }
 
-.action-btn:hover {
-  border-color: var(--btn-outline-active);
-}
+.action-btn:hover { border-color: var(--btn-outline-active); }
+.action-btn:active { transform: scale(0.96); }
+.topic-btn { background: var(--grad-purple); }
+.task-btn { background: var(--grad-task); }
 
-.action-btn:active {
-  transform: scale(0.96);
-}
-
-.topic-btn {
-  background: var(--grad-purple);
-}
-
-.task-btn {
-  background: var(--grad-task);
-}
-
-/* Подтемы */
 .subtopics-container {
   display: flex;
   flex-direction: column;
@@ -306,11 +266,7 @@ body {
   color: var(--color-accent);
 }
 
-.subtopic-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.subtopic-actions { display: flex; align-items: center; gap: 6px; }
 
 .quick-btn {
   background: rgba(255, 255, 255, 0.03);
@@ -323,10 +279,7 @@ body {
   transition: all 0.2s;
 }
 
-.quick-btn:hover {
-  color: var(--text-main);
-  border-color: var(--btn-outline-active);
-}
+.quick-btn:hover { color: var(--text-main); border-color: var(--btn-outline-active); }
 
 .subtopic-body-preview {
   padding: 12px 14px;
@@ -339,7 +292,6 @@ body {
   overflow-y: auto;
 }
 
-/* Задачи и Фото */
 .todos-section, .photos-section {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -367,11 +319,7 @@ body {
   color: var(--color-accent);
 }
 
-.todo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.todo-list { display: flex; flex-direction: column; gap: 10px; }
 
 .todo-item {
   display: flex;
@@ -434,9 +382,7 @@ body {
   padding: 4px;
 }
 
-.del-btn:hover {
-  color: #8c4955;
-}
+.del-btn:hover { color: #8c4955; }
 
 .add-photo-label {
   font-size: 13px;
@@ -480,7 +426,6 @@ body {
   cursor: pointer;
 }
 
-/* Плавающая кнопка и меню */
 .floating-controls {
   position: fixed;
   bottom: 24px;
@@ -488,9 +433,7 @@ body {
   z-index: 50;
 }
 
-.radial-menu {
-  position: relative;
-}
+.radial-menu { position: relative; }
 
 .circle-btn {
   width: 56px;
@@ -509,9 +452,7 @@ body {
   transition: transform 0.2s;
 }
 
-.circle-btn:active {
-  transform: scale(0.9);
-}
+.circle-btn:active { transform: scale(0.9); }
 
 .radial-options {
   position: absolute;
@@ -540,16 +481,10 @@ body {
   transition: transform 0.2s, border-color 0.2s;
 }
 
-.radial-opt-btn:hover {
-  transform: scale(1.1);
-  border-color: var(--btn-outline-active);
-}
+.radial-opt-btn:hover { transform: scale(1.1); border-color: var(--btn-outline-active); }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
-/* Модальные окна */
 .overlay {
   position: fixed;
   top: 0;
@@ -634,9 +569,7 @@ body {
 }
 
 @media (max-width: 600px) {
-  .overlay {
-    padding: 0;
-  }
+  .overlay { padding: 0; }
   .full-editor-modal {
     max-height: 100dvh;
     height: 100dvh;
@@ -653,9 +586,7 @@ body {
   font-size: 14px;
 }
 
-.alarm-wrapper input {
-  width: 130px;
-}
+.alarm-wrapper input { width: 130px; }
 
 .modal-actions {
   display: flex;
@@ -676,61 +607,54 @@ body {
 .primary-btn { background: var(--grad-accent); color: #e5dbe8; }
 .secondary-btn { background: rgba(255, 255, 255, 0.03); color: var(--text-muted); }
 
-
-
-/* --- Адаптация для ПК и нового умного поиска --- */
-
-body {
-  padding: 24px;
-}
-
-.app-container {
-  max-width: 1120px;
-  gap: 20px;
-}
-
+/* --- ПК-адаптация --- */
 @media (min-width: 851px) {
   .day-content {
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
     align-items: start;
   }
-
   .main-note-section,
   .center-action-buttons,
   .subtopics-container {
     grid-column: 1;
   }
-
   .todos-section,
   .photos-section {
     grid-column: 2;
   }
-
-  .todos-section {
-    grid-row: 1 / span 2;
-  }
-
-  .photos-section {
-    grid-row: 3;
-  }
-
-  .main-note-section textarea {
-    min-height: 180px;
-  }
+  .todos-section { grid-row: 1 / span 2; }
+  .photos-section { grid-row: 3; }
+  .main-note-section textarea { min-height: 180px; }
 }
 
 @media (max-width: 850px) {
-  body {
-    padding: 12px;
-  }
-
-  .app-container {
-    max-width: 760px;
-  }
+  body { padding: 12px; }
+  .app-container { max-width: 760px; }
 }
 
-/* Окно умного поиска */
+/* --- Глобальные записи --- */
+.global-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(var(--color-accent-rgb), 0.08) 0%, var(--card-bg) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+}
+
+.global-section .section-title h4 {
+  color: var(--highlight-bright);
+  text-shadow: 0 0 6px rgba(235, 212, 245, 0.25);
+}
+
+.global-section .todos-section {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* --- Окно умного поиска --- */
 .sync-modal-card {
   width: min(920px, 100%);
   max-width: 920px;
@@ -756,9 +680,7 @@ body {
   font-size: 16px;
 }
 
-.sync-modal-card > input[type="search"]:focus {
-  border-color: var(--btn-outline-active);
-}
+.sync-modal-card > input[type="search"]:focus { border-color: var(--btn-outline-active); }
 
 .sync-filters {
   display: flex;
@@ -786,9 +708,7 @@ body {
   min-width: 0;
 }
 
-.sync-file-btn {
-  white-space: nowrap;
-}
+.sync-file-btn { white-space: nowrap; }
 
 .sync-file-name {
   min-width: 0;
@@ -829,9 +749,7 @@ body {
   background: rgba(255, 255, 255, 0.015);
 }
 
-.sync-group-new {
-  border-color: rgba(235, 212, 245, 0.16);
-}
+.sync-group-new { border-color: rgba(235, 212, 245, 0.16); }
 
 .sync-group-header {
   display: flex;
@@ -920,9 +838,7 @@ body {
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
 }
 
-.sync-result-item:hover {
-  border-color: var(--btn-outline-active);
-}
+.sync-result-item:hover { border-color: var(--btn-outline-active); }
 
 .sync-result-item.selected {
   border-color: var(--highlight-bright);
@@ -997,14 +913,8 @@ body {
   border-radius: 11px;
 }
 
-.sync-actions {
-  margin-top: 0;
-}
-
-.sync-actions button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.sync-actions { margin-top: 0; }
+.sync-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 @media (max-width: 600px) {
   .sync-modal-card {
@@ -1012,42 +922,38 @@ body {
     border-radius: 0;
     border: none;
   }
-
   .sync-file-row {
     align-items: flex-start;
     flex-direction: column;
   }
+  .sync-file-name { width: 100%; }
+  .sync-results { max-height: 50dvh; }
+  .sync-groups { grid-template-columns: 1fr; }
+  .sync-group-results { max-height: 30dvh; }
+  .sync-result-item { grid-template-columns: 24px minmax(0, 1fr); }
+  .sync-result-badge { grid-column: 2; justify-self: start; }
+  .sync-actions { flex-direction: column-reverse; }
+  .sync-actions button { width: 100%; }
+}
 
-  .sync-file-name {
-    width: 100%;
-  }
+.sync-filters select {
+  width: auto;
+  min-width: 140px;
+  background: var(--bg-main);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--text-main);
+  outline: none;
+  font-size: 13px;
+  cursor: pointer;
+}
 
-  .sync-results {
-    max-height: 50dvh;
-  }
+.sync-filters select:focus {
+  border-color: var(--btn-outline-active);
+}
 
-  .sync-groups {
-    grid-template-columns: 1fr;
-  }
-
-  .sync-group-results {
-    max-height: 30dvh;
-  }
-
-  .sync-result-item {
-    grid-template-columns: 24px minmax(0, 1fr);
-  }
-
-  .sync-result-badge {
-    grid-column: 2;
-    justify-self: start;
-  }
-
-  .sync-actions {
-    flex-direction: column-reverse;
-  }
-
-  .sync-actions button {
-    width: 100%;
-  }
+.sync-filters select option {
+  background: var(--card-bg);
+  color: var(--text-main);
 }

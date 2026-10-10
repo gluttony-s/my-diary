@@ -2,6 +2,8 @@
 let currentDate = new Date();
 let diaryData = JSON.parse(localStorage.getItem('diaryData')) || {};
 
+const GLOBAL_KEY = '_global';
+
 // DOM Элементы
 const monthTitle = document.getElementById('month-title');
 const weekDaysContainer = document.getElementById('week-days');
@@ -15,6 +17,10 @@ const todosCounter = document.getElementById('todos-counter');
 const photoList = document.getElementById('photo-list');
 const photoInput = document.getElementById('photo-input');
 
+const globalSubtopicsContainer = document.getElementById('global-subtopics-container');
+const globalTodoList = document.getElementById('global-todo-list');
+const globalTodosCounter = document.getElementById('global-todos-counter');
+
 // Модальные окна
 const modalOverlay = document.getElementById('modal-overlay');
 const taskOverlay = document.getElementById('task-overlay');
@@ -23,6 +29,8 @@ const modalInputTitle = document.getElementById('modal-input-title');
 const modalInputBody = document.getElementById('modal-input-body');
 
 let editingSubtopicId = null;
+let modalScope = 'day'; // 'day' | 'global'
+let taskScope = 'day';
 
 // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function formatDateKey(date) {
@@ -33,6 +41,9 @@ function initDayData(dateKey) {
     if (!diaryData[dateKey]) {
         diaryData[dateKey] = { mainNote: '', mood: null, subtopics: [], todos: [], photos: [] };
     }
+    if (!Array.isArray(diaryData[dateKey].subtopics)) diaryData[dateKey].subtopics = [];
+    if (!Array.isArray(diaryData[dateKey].todos)) diaryData[dateKey].todos = [];
+    if (!Array.isArray(diaryData[dateKey].photos)) diaryData[dateKey].photos = [];
 }
 
 function saveToStorage() {
@@ -54,8 +65,10 @@ function renderWeek() {
         d.setDate(monday.getDate() + i);
         const dateKey = formatDateKey(d);
         const isSelected = formatDateKey(currentDate) === dateKey;
-        const hasData = diaryData[dateKey] && 
-            (diaryData[dateKey].mainNote || (diaryData[dateKey].subtopics && diaryData[dateKey].subtopics.length > 0) || (diaryData[dateKey].todos && diaryData[dateKey].todos.length > 0));
+        const hasData = diaryData[dateKey] &&
+            (diaryData[dateKey].mainNote ||
+             (diaryData[dateKey].subtopics && diaryData[dateKey].subtopics.length > 0) ||
+             (diaryData[dateKey].todos && diaryData[dateKey].todos.length > 0));
 
         const dayEl = document.createElement('div');
         dayEl.className = `day-cell ${isSelected ? 'selected' : ''} ${hasData ? 'has-note' : ''}`;
@@ -75,7 +88,7 @@ function loadDay() {
 
     selectedDateTitle.textContent = currentDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
     mainNoteInput.value = dayData.mainNote || '';
-    
+
     document.querySelectorAll('.mood-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mood === dayData.mood);
     });
@@ -84,6 +97,8 @@ function loadDay() {
     renderSubtopics();
     renderTodos();
     renderPhotos();
+    renderGlobalSubtopics();
+    renderGlobalTodos();
 }
 
 // Слушатели главной заметки и настроения
@@ -105,14 +120,22 @@ document.querySelectorAll('.mood-btn').forEach(btn => {
     });
 });
 
-// Навигация
-document.getElementById('prev-week').addEventListener('click', () => { currentDate.setDate(currentDate.getDate() - 7); loadDay(); });
-document.getElementById('next-week').addEventListener('click', () => { currentDate.setDate(currentDate.getDate() + 7); loadDay(); });
+// Навигация по неделям — с автопереходом на понедельник
+function shiftWeek(delta) {
+    currentDate.setDate(currentDate.getDate() + delta * 7);
+    const dow = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+    currentDate.setDate(currentDate.getDate() - dow);
+    loadDay();
+}
+
+document.getElementById('prev-week').addEventListener('click', () => shiftWeek(-1));
+document.getElementById('next-week').addEventListener('click', () => shiftWeek(1));
+
 calendarPicker.addEventListener('change', (e) => {
     if (e.target.value) { currentDate = new Date(e.target.value); loadDay(); }
 });
 
-// Свайпы
+// Свайпы — по одному дню
 let touchStartX = 0, touchEndX = 0;
 const swipeArea = document.getElementById('swipe-area');
 swipeArea.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, false);
@@ -123,9 +146,9 @@ swipeArea.addEventListener('touchend', (e) => {
 }, false);
 
 // --- ПОДТЕМЫ ---
-function renderSubtopics() {
-    subtopicsContainer.innerHTML = '';
-    const dateKey = formatDateKey(currentDate);
+function renderSubtopicList(container, dateKey) {
+    container.innerHTML = '';
+    initDayData(dateKey);
     const subtopics = diaryData[dateKey].subtopics || [];
 
     subtopics.forEach(subtopic => {
@@ -143,7 +166,8 @@ function renderSubtopics() {
             ${subtopic.body ? `<div class="subtopic-body-preview">${escapeHtml(subtopic.body)}</div>` : ''}
         `;
 
-        card.querySelector('.edit-subtopic-btn').addEventListener('click', () => openSubtopicModal(subtopic));
+        const scope = dateKey === GLOBAL_KEY ? 'global' : 'day';
+        card.querySelector('.edit-subtopic-btn').addEventListener('click', () => openSubtopicModal(subtopic, scope));
         card.querySelector('.copy-subtopic-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(`${subtopic.title}\n\n${subtopic.body || ''}`);
             alert('Скопировано!');
@@ -154,19 +178,28 @@ function renderSubtopics() {
                 saveToStorage(); loadDay();
             }
         });
-        subtopicsContainer.appendChild(card);
+        container.appendChild(card);
     });
 }
 
-function openSubtopicModal(subtopic = null) {
+function renderSubtopics() {
+    renderSubtopicList(subtopicsContainer, formatDateKey(currentDate));
+}
+
+function renderGlobalSubtopics() {
+    renderSubtopicList(globalSubtopicsContainer, GLOBAL_KEY);
+}
+
+function openSubtopicModal(subtopic = null, scope = 'day') {
+    modalScope = scope;
     if (subtopic) {
         editingSubtopicId = subtopic.id;
-        modalTitle.textContent = "Редактировать подтему";
+        modalTitle.textContent = scope === 'global' ? "Редактировать глобальную подтему" : "Редактировать подтему";
         modalInputTitle.value = subtopic.title;
         modalInputBody.value = subtopic.body || '';
     } else {
         editingSubtopicId = null;
-        modalTitle.textContent = "Новая подтема";
+        modalTitle.textContent = scope === 'global' ? "Новая глобальная подтема" : "Новая подтема";
         modalInputTitle.value = '';
         modalInputBody.value = '';
     }
@@ -174,9 +207,9 @@ function openSubtopicModal(subtopic = null) {
 }
 
 // --- ЗАДАЧИ ---
-function renderTodos() {
-    todoList.innerHTML = '';
-    const dateKey = formatDateKey(currentDate);
+function renderTodoList(container, counterEl, dateKey) {
+    container.innerHTML = '';
+    initDayData(dateKey);
     const todos = diaryData[dateKey].todos || [];
     let completedCount = 0;
 
@@ -200,24 +233,40 @@ function renderTodos() {
                 saveToStorage(); loadDay();
             }
         });
-        todoList.appendChild(item);
+        container.appendChild(item);
     });
-    todosCounter.textContent = `${completedCount}/${todos.length}`;
+    if (counterEl) counterEl.textContent = `${completedCount}/${todos.length}`;
 }
 
-// Будильники
+function renderTodos() {
+    renderTodoList(todoList, todosCounter, formatDateKey(currentDate));
+}
+
+function renderGlobalTodos() {
+    renderTodoList(globalTodoList, globalTodosCounter, GLOBAL_KEY);
+}
+
+// Будильники — срабатывают один раз в сутки на задачу
 setInterval(() => {
     const now = new Date();
     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const todayKey = formatDateKey(now);
-    if (diaryData[todayKey] && diaryData[todayKey].todos) {
-        diaryData[todayKey].todos.forEach(todo => {
-            if (todo.alarmTime === currentTimeStr && !todo.alarmFired && !todo.done) {
-                alert(`⏰ НАПОМИНАНИЕ О ЗАДАЧЕ:\n\n${todo.text}`);
-                todo.alarmFired = true; saveToStorage();
+
+    const checkTodos = (todos) => {
+        (todos || []).forEach(todo => {
+            if (todo.alarmTime === currentTimeStr && !todo.done) {
+                const firedKey = `alarmFired_${todayKey}`;
+                if (!todo[firedKey]) {
+                    alert(`⏰ НАПОМИНАНИЕ О ЗАДАЧЕ:\n\n${todo.text}`);
+                    todo[firedKey] = true;
+                    saveToStorage();
+                }
             }
         });
-    }
+    };
+
+    if (diaryData[todayKey]) checkTodos(diaryData[todayKey].todos);
+    if (diaryData[GLOBAL_KEY]) checkTodos(diaryData[GLOBAL_KEY].todos);
 }, 10000);
 
 // --- ФОТОГРАФИИ ---
@@ -254,9 +303,19 @@ photoInput.addEventListener('change', (e) => {
     }
 });
 
-// --- СОБЫТИЯ ЦЕНТРАЛЬНЫХ КНОПОК ---
-document.getElementById('opt-add-topic').addEventListener('click', () => openSubtopicModal());
+// --- КНОПКИ ДОБАВЛЕНИЯ ---
+document.getElementById('opt-add-topic').addEventListener('click', () => openSubtopicModal(null, 'day'));
+document.getElementById('opt-add-global-topic').addEventListener('click', () => openSubtopicModal(null, 'global'));
+
 document.getElementById('opt-add-task').addEventListener('click', () => {
+    taskScope = 'day';
+    document.getElementById('task-input-text').value = '';
+    document.getElementById('task-input-time').value = '';
+    taskOverlay.classList.remove('hidden');
+});
+
+document.getElementById('opt-add-global-task').addEventListener('click', () => {
+    taskScope = 'global';
     document.getElementById('task-input-text').value = '';
     document.getElementById('task-input-time').value = '';
     taskOverlay.classList.remove('hidden');
@@ -266,7 +325,7 @@ document.getElementById('opt-add-task').addEventListener('click', () => {
 document.getElementById('modal-save-btn').addEventListener('click', () => {
     const title = modalInputTitle.value.trim();
     if (!title) return;
-    const dateKey = formatDateKey(currentDate);
+    const dateKey = modalScope === 'global' ? GLOBAL_KEY : formatDateKey(currentDate);
     initDayData(dateKey);
 
     if (editingSubtopicId) {
@@ -286,10 +345,11 @@ document.getElementById('modal-cancel-top-btn').addEventListener('click', closeM
 document.getElementById('task-save-btn').addEventListener('click', () => {
     const text = document.getElementById('task-input-text').value.trim();
     if (!text) return;
-    const dateKey = formatDateKey(currentDate);
+    const dateKey = taskScope === 'global' ? GLOBAL_KEY : formatDateKey(currentDate);
     initDayData(dateKey);
     diaryData[dateKey].todos.push({
-        id: Date.now(), text: text, done: false, alarmTime: document.getElementById('task-input-time').value || null
+        id: Date.now(), text: text, done: false,
+        alarmTime: document.getElementById('task-input-time').value || null
     });
     saveToStorage(); taskOverlay.classList.add('hidden'); loadDay();
 });
@@ -298,14 +358,16 @@ const closeTaskModal = () => taskOverlay.classList.add('hidden');
 document.getElementById('task-cancel-btn').addEventListener('click', closeTaskModal);
 document.getElementById('task-cancel-top-btn').addEventListener('click', closeTaskModal);
 
-
-// --- БАЗОВЫЙ ЭКСПОРТ / ИМПОРТ ---
+// --- ЭКСПОРТ / ИМПОРТ ---
 const radialToggleBtn = document.getElementById('radial-toggle-btn');
 const radialOptions = document.getElementById('radial-options');
 radialToggleBtn.addEventListener('click', () => radialOptions.classList.toggle('hidden'));
 
 document.getElementById('opt-export').addEventListener('click', () => {
-    downloadFile(JSON.stringify(diaryData, null, 2), `diary_full_${formatDateKey(new Date())}.json`);
+    downloadFile(
+        JSON.stringify(diaryData, null, 2),
+        `diary_full_${formatDateKey(new Date())}.json`
+    );
 });
 
 document.getElementById('import-file').addEventListener('change', (e) => {
@@ -322,12 +384,12 @@ document.getElementById('import-file').addEventListener('change', (e) => {
     }
 });
 
-
 // --- УМНЫЙ ПОИСК / ВЫБОР / СЛИЯНИЕ ---
 const syncOverlay = document.getElementById('sync-overlay');
 const syncSearchInput = document.getElementById('sync-search-input');
 const syncDateStart = document.getElementById('sync-date-start');
 const syncDateEnd = document.getElementById('sync-date-end');
+const syncTypeFilter = document.getElementById('sync-type-filter');
 const syncResults = document.getElementById('sync-results');
 const syncGroups = document.getElementById('sync-groups');
 const syncExistingResults = document.getElementById('sync-existing-results');
@@ -356,58 +418,60 @@ function makeSyncItemKey(date, type, id) {
     return `${date}|${type}|${String(id)}`;
 }
 
+function formatSyncDateLabel(date) {
+    return date === GLOBAL_KEY ? '🌐 Глобально' : date;
+}
+
 function getSyncItems() {
     const keyword = syncSearchInput.value.toLowerCase().trim();
     const dateStart = syncDateStart.value;
     const dateEnd = syncDateEnd.value;
+    const typeFilter = syncTypeFilter ? syncTypeFilter.value : 'all'; // 'all' | 'subtopic' | 'todo'
     const items = [];
 
     Object.keys(diaryData).forEach(date => {
-        if (dateStart && date < dateStart) return;
-        if (dateEnd && date > dateEnd) return;
+        if (date !== GLOBAL_KEY) {
+            if (dateStart && date < dateStart) return;
+            if (dateEnd && date > dateEnd) return;
+        }
 
         const day = diaryData[date] || {};
 
-        // Ищем одновременно по подтемам и задачам.
-        (day.subtopics || []).forEach(subtopic => {
-            const title = String(subtopic.title || '');
-            const body = String(subtopic.body || '');
+        if (typeFilter === 'all' || typeFilter === 'subtopic') {
+            (day.subtopics || []).forEach(subtopic => {
+                const title = String(subtopic.title || '');
+                const body = String(subtopic.body || '');
+                if (!keyword || title.toLowerCase().includes(keyword) || body.toLowerCase().includes(keyword)) {
+                    items.push({
+                        key: makeSyncItemKey(date, 'subtopic', subtopic.id),
+                        date, type: 'subtopic', id: subtopic.id,
+                        title: title || 'Без названия',
+                        preview: body,
+                        data: { ...subtopic }
+                    });
+                }
+            });
+        }
 
-            if (
-                !keyword ||
-                title.toLowerCase().includes(keyword) ||
-                body.toLowerCase().includes(keyword)
-            ) {
-                items.push({
-                    key: makeSyncItemKey(date, 'subtopic', subtopic.id),
-                    date,
-                    type: 'subtopic',
-                    id: subtopic.id,
-                    title: title || 'Без названия',
-                    preview: body,
-                    data: { ...subtopic }
-                });
-            }
-        });
-
-        (day.todos || []).forEach(todo => {
-            const title = String(todo.text || '');
-
-            if (!keyword || title.toLowerCase().includes(keyword)) {
-                items.push({
-                    key: makeSyncItemKey(date, 'todo', todo.id),
-                    date,
-                    type: 'todo',
-                    id: todo.id,
-                    title: title || 'Без названия',
-                    preview: todo.alarmTime ? `Будильник: ${todo.alarmTime}` : '',
-                    data: { ...todo }
-                });
-            }
-        });
+        if (typeFilter === 'all' || typeFilter === 'todo') {
+            (day.todos || []).forEach(todo => {
+                const title = String(todo.text || '');
+                if (!keyword || title.toLowerCase().includes(keyword)) {
+                    items.push({
+                        key: makeSyncItemKey(date, 'todo', todo.id),
+                        date, type: 'todo', id: todo.id,
+                        title: title || 'Без названия',
+                        preview: todo.alarmTime ? `Будильник: ${todo.alarmTime}` : '',
+                        data: { ...todo }
+                    });
+                }
+            });
+        }
     });
 
     items.sort((a, b) => {
+        if (a.date === GLOBAL_KEY && b.date !== GLOBAL_KEY) return -1;
+        if (b.date === GLOBAL_KEY && a.date !== GLOBAL_KEY) return 1;
         if (a.date !== b.date) return b.date.localeCompare(a.date);
         if (a.type !== b.type) return a.type.localeCompare(b.type);
         return a.title.localeCompare(b.title, 'ru');
@@ -418,24 +482,17 @@ function getSyncItems() {
 
 function getTargetCollection(item) {
     if (!syncTargetData || !syncTargetData[item.date]) return [];
-
     const name = item.type === 'subtopic' ? 'subtopics' : 'todos';
     return syncTargetData[item.date][name] || [];
 }
 
 function isSyncItemInTarget(item) {
     const collection = getTargetCollection(item);
+    if (collection.some(entry => String(entry.id) === String(item.id))) return true;
 
-    if (collection.some(entry => String(entry.id) === String(item.id))) {
-        return true;
-    }
-
-    // Если ID разный, считаем совпадением одинаковое название
-    // в ту же дату и в той же категории.
     const sourceText = normalizeSyncText(
         item.type === 'subtopic' ? item.data.title : item.data.text
     );
-
     return collection.some(entry => normalizeSyncText(
         item.type === 'subtopic' ? entry.title : entry.text
     ) === sourceText);
@@ -467,7 +524,7 @@ function renderSyncResultItem(item, inTarget) {
     const meta = document.createElement('span');
     meta.className = 'sync-result-meta';
     meta.textContent =
-        `${item.date} • ${item.type === 'subtopic' ? 'Подтема' : 'Задача'}` +
+        `${formatSyncDateLabel(item.date)} • ${item.type === 'subtopic' ? 'Подтема' : 'Задача'}` +
         (item.preview ? ` • ${item.preview}` : '');
 
     main.appendChild(title);
@@ -482,11 +539,8 @@ function renderSyncResultItem(item, inTarget) {
     row.appendChild(badge);
 
     row.addEventListener('click', () => {
-        if (syncSelectedItems.has(item.key)) {
-            syncSelectedItems.delete(item.key);
-        } else {
-            syncSelectedItems.add(item.key);
-        }
+        if (syncSelectedItems.has(item.key)) syncSelectedItems.delete(item.key);
+        else syncSelectedItems.add(item.key);
         renderSyncResults();
     });
 
@@ -536,7 +590,6 @@ function renderSyncResults() {
 
     const existingItems = [];
     const newItems = [];
-
     items.forEach(item => {
         if (isSyncItemInTarget(item)) existingItems.push(item);
         else newItems.push(item);
@@ -560,7 +613,6 @@ function renderSyncResults() {
     }
 
     const selectedVisible = getSelectedItemsFromList(items);
-
     syncResultsCount.textContent = `Найдено: ${items.length}`;
     syncSelectedCount.textContent = `Выбрано: ${selectedVisible.length}`;
     syncNewCount.textContent = `Новых: ${newItems.length}`;
@@ -573,82 +625,52 @@ function renderSyncResults() {
 
     syncSelectExistingBtn.textContent =
         existingItems.length > 0 && existingItems.every(item => syncSelectedItems.has(item.key))
-            ? 'Снять все'
-            : 'Выбрать все';
-
+            ? 'Снять все' : 'Выбрать все';
     syncSelectNewBtn.textContent =
         newItems.length > 0 && newItems.every(item => syncSelectedItems.has(item.key))
-            ? 'Снять все'
-            : 'Выбрать все';
+            ? 'Снять все' : 'Выбрать все';
 }
 
 function buildSelectedData(items) {
     const selectedData = {};
-
     items.forEach(item => {
         if (!selectedData[item.date]) {
             selectedData[item.date] = {
-                mainNote: '',
-                mood: null,
-                subtopics: [],
-                todos: [],
-                photos: []
+                mainNote: '', mood: null, subtopics: [], todos: [], photos: []
             };
         }
-
-        if (item.type === 'subtopic') {
-            selectedData[item.date].subtopics.push({ ...item.data });
-        } else {
-            selectedData[item.date].todos.push({ ...item.data });
-        }
+        if (item.type === 'subtopic') selectedData[item.date].subtopics.push({ ...item.data });
+        else selectedData[item.date].todos.push({ ...item.data });
     });
-
     return selectedData;
 }
 
 function mergeSelectedItemsIntoTarget(items) {
-    if (!syncTargetData) {
-        throw new Error('Файл для добавления не выбран.');
-    }
+    if (!syncTargetData) throw new Error('Файл для добавления не выбран.');
 
     items.forEach(item => {
         if (!syncTargetData[item.date]) {
             syncTargetData[item.date] = {
-                mainNote: '',
-                mood: null,
-                subtopics: [],
-                todos: [],
-                photos: []
+                mainNote: '', mood: null, subtopics: [], todos: [], photos: []
             };
         }
 
         const collectionName = item.type === 'subtopic' ? 'subtopics' : 'todos';
         const collection = syncTargetData[item.date][collectionName] || [];
 
-        const sameIdIndex = collection.findIndex(
-            entry => String(entry.id) === String(item.id)
-        );
-
+        const sameIdIndex = collection.findIndex(entry => String(entry.id) === String(item.id));
         if (sameIdIndex >= 0) {
             collection[sameIdIndex] = { ...item.data };
         } else {
             const sourceText = normalizeSyncText(
                 item.type === 'subtopic' ? item.data.title : item.data.text
             );
-
             const sameTextIndex = collection.findIndex(entry =>
-                normalizeSyncText(
-                    item.type === 'subtopic' ? entry.title : entry.text
-                ) === sourceText
+                normalizeSyncText(item.type === 'subtopic' ? entry.title : entry.text) === sourceText
             );
-
-            if (sameTextIndex >= 0) {
-                collection[sameTextIndex] = { ...item.data };
-            } else {
-                collection.push({ ...item.data });
-            }
+            if (sameTextIndex >= 0) collection[sameTextIndex] = { ...item.data };
+            else collection.push({ ...item.data });
         }
-
         syncTargetData[item.date][collectionName] = collection;
     });
 }
@@ -670,7 +692,8 @@ document.getElementById('sync-close-btn').addEventListener('click', () => {
     syncOverlay.classList.add('hidden');
 });
 
-[syncSearchInput, syncDateStart, syncDateEnd].forEach(input => {
+[syncSearchInput, syncDateStart, syncDateEnd, syncTypeFilter].forEach(input => {
+    if (!input) return;
     input.addEventListener('input', renderSyncResults);
     input.addEventListener('change', renderSyncResults);
 });
@@ -696,20 +719,16 @@ syncMergeInput.addEventListener('change', (e) => {
     if (!file) return;
 
     const reader = new FileReader();
-
     reader.onload = (event) => {
         try {
             const parsed = JSON.parse(event.target.result);
-
             if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
                 throw new Error('Некорректная структура');
             }
-
             syncTargetData = parsed;
             syncTargetFileName = file.name;
             syncFileName.textContent = `Выбран: ${file.name}`;
             syncFileName.title = file.name;
-
             renderSyncResults();
         } catch (err) {
             syncTargetData = null;
@@ -720,25 +739,27 @@ syncMergeInput.addEventListener('change', (e) => {
             renderSyncResults();
         }
     };
-
     reader.readAsText(file);
 });
 
 document.getElementById('sync-export-new-btn').addEventListener('click', () => {
     const selected = getVisibleSelectedSyncItems();
-
     if (selected.length === 0) {
         alert('Сначала выберите записи в списке.');
         return;
     }
-
     const dataToExport = buildSelectedData(selected);
     const keyword =
         syncSearchInput.value.trim().replace(/[\\/:*?"<>|]+/g, '_') || 'selected';
 
+    const typeFilter = syncTypeFilter ? syncTypeFilter.value : 'all';
+    const typeSuffix =
+        typeFilter === 'subtopic' ? '_topics' :
+        typeFilter === 'todo' ? '_tasks' : '';
+
     downloadFile(
         JSON.stringify(dataToExport, null, 2),
-        `${keyword}_${formatDateKey(new Date())}.json`
+        `${keyword}${typeSuffix}_${formatDateKey(new Date())}.json`
     );
 });
 
@@ -747,7 +768,6 @@ syncMergeSelectedBtn.addEventListener('click', () => {
         alert('Сначала выберите существующий JSON-файл.');
         return;
     }
-
     const selected = getVisibleSelectedSyncItems();
     const newItems = selected.filter(item => !isSyncItemInTarget(item));
 
@@ -755,7 +775,6 @@ syncMergeSelectedBtn.addEventListener('click', () => {
         alert('Среди выбранных записей нет новых для этого файла.');
         return;
     }
-
     mergeSelectedItemsIntoTarget(newItems);
     newItems.forEach(item => syncSelectedItems.delete(item.key));
 
@@ -763,7 +782,6 @@ syncMergeSelectedBtn.addEventListener('click', () => {
         JSON.stringify(syncTargetData, null, 2),
         syncTargetFileName || `diary_merged_${formatDateKey(new Date())}.json`
     );
-
     alert(`Добавлено новых записей: ${newItems.length}. Обновлённый файл скачан.`);
     renderSyncResults();
 });
@@ -773,14 +791,11 @@ syncMergeAllNewBtn.addEventListener('click', () => {
         alert('Сначала выберите существующий JSON-файл.');
         return;
     }
-
     const newItems = getSyncItems().filter(item => !isSyncItemInTarget(item));
-
     if (newItems.length === 0) {
         alert('Новых записей по текущему поиску нет.');
         return;
     }
-
     mergeSelectedItemsIntoTarget(newItems);
     newItems.forEach(item => syncSelectedItems.delete(item.key));
 
@@ -788,7 +803,6 @@ syncMergeAllNewBtn.addEventListener('click', () => {
         JSON.stringify(syncTargetData, null, 2),
         syncTargetFileName || `diary_merged_${formatDateKey(new Date())}.json`
     );
-
     alert(`Добавлены все новые записи: ${newItems.length}. Обновлённый файл скачан.`);
     renderSyncResults();
 });

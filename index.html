@@ -63,6 +63,27 @@
       </div>
     </main>
 
+    <!-- Глобальные записи (не привязаны к дате) -->
+    <section class="global-section">
+      <div class="section-title">
+        <h4>🌐 Глобальные записи</h4>
+      </div>
+      <div class="center-action-buttons">
+        <button id="opt-add-global-topic" class="action-btn topic-btn">📝 Глобальная подтема</button>
+        <button id="opt-add-global-task" class="action-btn task-btn">✅ Глобальная задача</button>
+      </div>
+
+      <div id="global-subtopics-container" class="subtopics-container"></div>
+
+      <div class="todos-section">
+        <div class="section-title">
+          <h4>Глобальные задачи</h4>
+          <span id="global-todos-counter" class="counter">0/0</span>
+        </div>
+        <div id="global-todo-list" class="todo-list"></div>
+      </div>
+    </section>
+
     <div class="floating-controls">
       <div class="radial-menu">
         <button id="radial-toggle-btn" class="circle-btn settings-btn" title="Настройки">⚙️</button>
@@ -117,7 +138,7 @@
       <div class="modal-header">
         <div>
           <h3>Умный поиск и добавление</h3>
-          <p class="sync-hint">Начните вводить название — список обновляется сразу. Можно выбрать нужные записи галочками.</p>
+          <p class="sync-hint">Начните вводить название — список обновляется сразу. Можно выбрать нужные записи галочками. Фильтр «Тип» позволяет работать только с темами или только с задачами.</p>
         </div>
         <button id="sync-close-btn" class="icon-close-btn" aria-label="Закрыть">✕</button>
       </div>
@@ -129,6 +150,13 @@
       <div class="sync-filters">
         <label>С <input type="date" id="sync-date-start"></label>
         <label>По <input type="date" id="sync-date-end"></label>
+        <label>Тип
+          <select id="sync-type-filter">
+            <option value="all">Все</option>
+            <option value="subtopic">Только темы</option>
+            <option value="todo">Только задачи</option>
+          </select>
+        </label>
       </div>
 
       <div class="sync-file-row">
