@@ -45,7 +45,7 @@
 
       <div id="subtopics-container" class="subtopics-container"></div>
 
-      <div class="todos-section">
+      <div id="day-todos-section" class="todos-section hidden">
         <div class="section-title">
           <h4>Задачи</h4>
           <span id="todos-counter" class="counter">0/0</span>
@@ -67,20 +67,24 @@
     <section class="global-section">
       <div class="section-title">
         <h4>🌐 Глобальные записи</h4>
-      </div>
-      <div class="center-action-buttons">
-        <button id="opt-add-global-topic" class="action-btn topic-btn">📝 Глобальная подтема</button>
-        <button id="opt-add-global-task" class="action-btn task-btn">✅ Глобальная задача</button>
+        <button id="global-toggle-btn" class="toggle-btn" aria-expanded="true" title="Свернуть">▾</button>
       </div>
 
-      <div id="global-subtopics-container" class="subtopics-container"></div>
-
-      <div class="todos-section">
-        <div class="section-title">
-          <h4>Глобальные задачи</h4>
-          <span id="global-todos-counter" class="counter">0/0</span>
+      <div id="global-content" class="global-content">
+        <div class="center-action-buttons">
+          <button id="opt-add-global-topic" class="action-btn topic-btn">📝 Глобальная подтема</button>
+          <button id="opt-add-global-task" class="action-btn task-btn">✅ Глобальная задача</button>
         </div>
-        <div id="global-todo-list" class="todo-list"></div>
+
+        <div id="global-subtopics-container" class="subtopics-container"></div>
+
+        <div id="global-todos-section" class="todos-section hidden">
+          <div class="section-title">
+            <h4>Глобальные задачи</h4>
+            <span id="global-todos-counter" class="counter">0/0</span>
+          </div>
+          <div id="global-todo-list" class="todo-list"></div>
+        </div>
       </div>
     </section>
 

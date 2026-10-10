@@ -3,6 +3,8 @@ let currentDate = new Date();
 let diaryData = JSON.parse(localStorage.getItem('diaryData')) || {};
 
 const GLOBAL_KEY = '_global';
+const GLOBAL_COLLAPSED_KEY = 'globalCollapsed';
+const COLLAPSED_SUBTOPICS_KEY = 'collapsedSubtopicIds';
 
 // DOM Элементы
 const monthTitle = document.getElementById('month-title');
@@ -14,12 +16,16 @@ const mainNoteInput = document.getElementById('main-note-input');
 const subtopicsContainer = document.getElementById('subtopics-container');
 const todoList = document.getElementById('todo-list');
 const todosCounter = document.getElementById('todos-counter');
+const dayTodosSection = document.getElementById('day-todos-section');
 const photoList = document.getElementById('photo-list');
 const photoInput = document.getElementById('photo-input');
 
 const globalSubtopicsContainer = document.getElementById('global-subtopics-container');
 const globalTodoList = document.getElementById('global-todo-list');
 const globalTodosCounter = document.getElementById('global-todos-counter');
+const globalTodosSection = document.getElementById('global-todos-section');
+const globalToggleBtn = document.getElementById('global-toggle-btn');
+const globalContent = document.getElementById('global-content');
 
 // Модальные окна
 const modalOverlay = document.getElementById('modal-overlay');
@@ -31,6 +37,15 @@ const modalInputBody = document.getElementById('modal-input-body');
 let editingSubtopicId = null;
 let modalScope = 'day'; // 'day' | 'global'
 let taskScope = 'day';
+
+// Состояние сворачивания
+let collapsedSubtopicIds = new Set(
+    JSON.parse(localStorage.getItem(COLLAPSED_SUBTOPICS_KEY) || '[]')
+);
+
+function saveCollapsedSubtopicIds() {
+    localStorage.setItem(COLLAPSED_SUBTOPICS_KEY, JSON.stringify([...collapsedSubtopicIds]));
+}
 
 // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function formatDateKey(date) {
@@ -145,6 +160,24 @@ swipeArea.addEventListener('touchend', (e) => {
     if (touchEndX > touchStartX + 50) { currentDate.setDate(currentDate.getDate() - 1); loadDay(); }
 }, false);
 
+// --- СВОРАЧИВАНИЕ ГЛОБАЛЬНОЙ СЕКЦИИ ---
+let globalCollapsed = localStorage.getItem(GLOBAL_COLLAPSED_KEY) === '1';
+
+function applyGlobalCollapsed() {
+    globalContent.classList.toggle('hidden', globalCollapsed);
+    globalToggleBtn.textContent = globalCollapsed ? '▸' : '▾';
+    globalToggleBtn.setAttribute('aria-expanded', String(!globalCollapsed));
+    globalToggleBtn.title = globalCollapsed ? 'Развернуть' : 'Свернуть';
+}
+
+globalToggleBtn.addEventListener('click', () => {
+    globalCollapsed = !globalCollapsed;
+    localStorage.setItem(GLOBAL_COLLAPSED_KEY, globalCollapsed ? '1' : '0');
+    applyGlobalCollapsed();
+});
+
+applyGlobalCollapsed();
+
 // --- ПОДТЕМЫ ---
 function renderSubtopicList(container, dateKey) {
     container.innerHTML = '';
@@ -152,11 +185,14 @@ function renderSubtopicList(container, dateKey) {
     const subtopics = diaryData[dateKey].subtopics || [];
 
     subtopics.forEach(subtopic => {
+        const isCollapsed = collapsedSubtopicIds.has(subtopic.id);
         const card = document.createElement('div');
-        card.className = 'subtopic-card';
+        card.className = `subtopic-card ${isCollapsed ? 'collapsed' : ''}`;
+
         card.innerHTML = `
             <div class="subtopic-header">
-                <span class="subtopic-title">${escapeHtml(subtopic.title)}</span>
+                <button class="quick-btn toggle-subtopic-btn" aria-label="Свернуть/развернуть">${isCollapsed ? '▸' : '▾'}</button>
+                <span class="subtopic-title" role="button" tabindex="0">${escapeHtml(subtopic.title)}</span>
                 <div class="subtopic-actions">
                     <button class="quick-btn edit-subtopic-btn">✏️</button>
                     <button class="quick-btn copy-subtopic-btn">📋</button>
@@ -167,6 +203,22 @@ function renderSubtopicList(container, dateKey) {
         `;
 
         const scope = dateKey === GLOBAL_KEY ? 'global' : 'day';
+
+        const toggleFn = () => {
+            if (collapsedSubtopicIds.has(subtopic.id)) {
+                collapsedSubtopicIds.delete(subtopic.id);
+            } else {
+                collapsedSubtopicIds.add(subtopic.id);
+            }
+            saveCollapsedSubtopicIds();
+            loadDay();
+        };
+
+        card.querySelector('.toggle-subtopic-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleFn();
+        });
+        card.querySelector('.subtopic-title').addEventListener('click', toggleFn);
         card.querySelector('.edit-subtopic-btn').addEventListener('click', () => openSubtopicModal(subtopic, scope));
         card.querySelector('.copy-subtopic-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(`${subtopic.title}\n\n${subtopic.body || ''}`);
@@ -175,6 +227,8 @@ function renderSubtopicList(container, dateKey) {
         card.querySelector('.del-subtopic-btn').addEventListener('click', () => {
             if (confirm('Точно удалить подтему?')) {
                 diaryData[dateKey].subtopics = diaryData[dateKey].subtopics.filter(s => s.id !== subtopic.id);
+                collapsedSubtopicIds.delete(subtopic.id);
+                saveCollapsedSubtopicIds();
                 saveToStorage(); loadDay();
             }
         });
@@ -207,11 +261,15 @@ function openSubtopicModal(subtopic = null, scope = 'day') {
 }
 
 // --- ЗАДАЧИ ---
-function renderTodoList(container, counterEl, dateKey) {
+function renderTodoList(container, counterEl, sectionEl, dateKey) {
     container.innerHTML = '';
     initDayData(dateKey);
     const todos = diaryData[dateKey].todos || [];
     let completedCount = 0;
+
+    if (sectionEl) {
+        sectionEl.classList.toggle('hidden', todos.length === 0);
+    }
 
     todos.forEach(todo => {
         if (todo.done) completedCount++;
@@ -239,11 +297,11 @@ function renderTodoList(container, counterEl, dateKey) {
 }
 
 function renderTodos() {
-    renderTodoList(todoList, todosCounter, formatDateKey(currentDate));
+    renderTodoList(todoList, todosCounter, dayTodosSection, formatDateKey(currentDate));
 }
 
 function renderGlobalTodos() {
-    renderTodoList(globalTodoList, globalTodosCounter, GLOBAL_KEY);
+    renderTodoList(globalTodoList, globalTodosCounter, globalTodosSection, GLOBAL_KEY);
 }
 
 // Будильники — срабатывают один раз в сутки на задачу
@@ -426,7 +484,7 @@ function getSyncItems() {
     const keyword = syncSearchInput.value.toLowerCase().trim();
     const dateStart = syncDateStart.value;
     const dateEnd = syncDateEnd.value;
-    const typeFilter = syncTypeFilter ? syncTypeFilter.value : 'all'; // 'all' | 'subtopic' | 'todo'
+    const typeFilter = syncTypeFilter ? syncTypeFilter.value : 'all';
     const items = [];
 
     Object.keys(diaryData).forEach(date => {
