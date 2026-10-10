@@ -193,8 +193,6 @@ function applyGlobalCollapsed() {
     globalToggleBtn.textContent = globalCollapsed ? '▸' : '▾';
     globalToggleBtn.setAttribute('aria-expanded', String(!globalCollapsed));
     globalToggleBtn.title = globalCollapsed ? 'Развернуть' : 'Свернуть';
-    const title = globalToggleBtn.closest('.section-title');
-    if (title) title.classList.toggle('collapsed', globalCollapsed);
 }
 globalToggleBtn.addEventListener('click', () => {
     globalCollapsed = !globalCollapsed;
@@ -210,8 +208,6 @@ function applyDayTodosCollapsed() {
     dayTodosToggleBtn.textContent = dayTodosCollapsed ? '▸' : '▾';
     dayTodosToggleBtn.setAttribute('aria-expanded', String(!dayTodosCollapsed));
     dayTodosToggleBtn.title = dayTodosCollapsed ? 'Развернуть' : 'Свернуть';
-    const title = dayTodosSection.querySelector('.section-title');
-    if (title) title.classList.toggle('collapsed', dayTodosCollapsed);
 }
 dayTodosToggleBtn.addEventListener('click', () => {
     dayTodosCollapsed = !dayTodosCollapsed;
@@ -227,8 +223,6 @@ function applyGlobalTodosCollapsed() {
     globalTodosToggleBtn.textContent = globalTodosCollapsed ? '▸' : '▾';
     globalTodosToggleBtn.setAttribute('aria-expanded', String(!globalTodosCollapsed));
     globalTodosToggleBtn.title = globalTodosCollapsed ? 'Развернуть' : 'Свернуть';
-    const title = globalTodosSection.querySelector('.section-title');
-    if (title) title.classList.toggle('collapsed', globalTodosCollapsed);
 }
 globalTodosToggleBtn.addEventListener('click', () => {
     globalTodosCollapsed = !globalTodosCollapsed;
@@ -240,19 +234,18 @@ applyGlobalTodosCollapsed();
 // Фотографии
 let photosCollapsed = localStorage.getItem(PHOTOS_COLLAPSED_KEY) === '1';
 function applyPhotosCollapsed() {
-    photosContent.classList.toggle('hidden', photosCollapsed);
+    if (photosContent && !photosContent.classList.contains('empty')) {
+        photosContent.classList.toggle('hidden', photosCollapsed);
+    }
     photosToggleBtn.textContent = photosCollapsed ? '▸' : '▾';
     photosToggleBtn.setAttribute('aria-expanded', String(!photosCollapsed));
     photosToggleBtn.title = photosCollapsed ? 'Развернуть' : 'Свернуть';
-    const title = photosSection.querySelector('.section-title');
-    if (title) title.classList.toggle('collapsed', photosCollapsed);
 }
 photosToggleBtn.addEventListener('click', () => {
     photosCollapsed = !photosCollapsed;
     localStorage.setItem(PHOTOS_COLLAPSED_KEY, photosCollapsed ? '1' : '0');
     applyPhotosCollapsed();
 });
-applyPhotosCollapsed();
 
 // --- ПОДТЕМЫ ---
 function renderSubtopicList(container, dateKey) {
@@ -347,13 +340,6 @@ function renderTodoList(container, counterEl, sectionEl, dateKey) {
         sectionEl.classList.toggle('hidden', todos.length === 0);
     }
 
-    // Обновляем класс "collapsed" у заголовка в зависимости от фактического состояния
-    if (sectionEl) {
-        const title = sectionEl.querySelector('.section-title');
-        const isCollapsed = sectionEl === dayTodosSection ? dayTodosCollapsed : globalTodosCollapsed;
-        if (title) title.classList.toggle('collapsed', todos.length > 0 && isCollapsed);
-    }
-
     todos.forEach(todo => {
         if (todo.done) completedCount++;
         const item = document.createElement('div');
@@ -421,19 +407,20 @@ function renderPhotos() {
         photosToggleBtn.classList.toggle('hidden', photos.length === 0);
     }
 
-    // Если фото нет — контент всегда виден (сворачивать пустое нечего).
-    // Если фото есть — применяем сохранённое состояние.
+    // Помечаем контейнер как "пустой", чтобы applyPhotosCollapsed не трогал его,
+    // и полностью скрываем пустой контейнер — иначе gap добавляет лишний отступ снизу.
     if (photos.length === 0) {
-        photosContent.classList.remove('hidden');
+        photosContent.classList.add('empty');
+        photosContent.classList.add('hidden');
     } else {
+        photosContent.classList.remove('empty');
         photosContent.classList.toggle('hidden', photosCollapsed);
     }
 
-    // Обновляем класс у заголовка, чтобы отступы были симметричны
-    const title = photosSection.querySelector('.section-title');
-    if (title) {
-        title.classList.toggle('collapsed', photos.length > 0 && photosCollapsed);
-    }
+    // Синхронизируем кнопку с реальным состоянием
+    photosToggleBtn.textContent = (photosCollapsed && photos.length > 0) ? '▸' : '▾';
+    photosToggleBtn.setAttribute('aria-expanded', String(!(photosCollapsed && photos.length > 0)));
+    photosToggleBtn.title = (photosCollapsed && photos.length > 0) ? 'Развернуть' : 'Свернуть';
 
     photos.forEach(photoSrc => {
         const card = document.createElement('div');

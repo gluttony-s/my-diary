@@ -328,18 +328,16 @@ body {
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .section-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
   gap: 10px;
-}
-
-.section-title.collapsed {
-  margin-bottom: 0;
 }
 
 .section-title h4 {
@@ -697,6 +695,7 @@ body {
   .app-container { max-width: 760px; }
 }
 
+/* --- Глобальные записи --- */
 .global-section {
   display: flex;
   flex-direction: column;
@@ -705,10 +704,6 @@ body {
   background: linear-gradient(180deg, rgba(var(--color-accent-rgb), 0.08) 0%, var(--card-bg) 100%);
   border: 1px solid var(--card-border);
   border-radius: 14px;
-}
-
-.global-section .section-title {
-  margin-bottom: 0;
 }
 
 .global-section .section-title h4 {
@@ -727,6 +722,7 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* --- Окно умного поиска --- */
 .sync-modal-card {
   width: min(920px, 100%);
   max-width: 920px;
