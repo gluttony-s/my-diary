@@ -193,6 +193,8 @@ function applyGlobalCollapsed() {
     globalToggleBtn.textContent = globalCollapsed ? '▸' : '▾';
     globalToggleBtn.setAttribute('aria-expanded', String(!globalCollapsed));
     globalToggleBtn.title = globalCollapsed ? 'Развернуть' : 'Свернуть';
+    const title = globalToggleBtn.closest('.section-title');
+    if (title) title.classList.toggle('collapsed', globalCollapsed);
 }
 globalToggleBtn.addEventListener('click', () => {
     globalCollapsed = !globalCollapsed;
@@ -208,6 +210,8 @@ function applyDayTodosCollapsed() {
     dayTodosToggleBtn.textContent = dayTodosCollapsed ? '▸' : '▾';
     dayTodosToggleBtn.setAttribute('aria-expanded', String(!dayTodosCollapsed));
     dayTodosToggleBtn.title = dayTodosCollapsed ? 'Развернуть' : 'Свернуть';
+    const title = dayTodosSection.querySelector('.section-title');
+    if (title) title.classList.toggle('collapsed', dayTodosCollapsed);
 }
 dayTodosToggleBtn.addEventListener('click', () => {
     dayTodosCollapsed = !dayTodosCollapsed;
@@ -223,6 +227,8 @@ function applyGlobalTodosCollapsed() {
     globalTodosToggleBtn.textContent = globalTodosCollapsed ? '▸' : '▾';
     globalTodosToggleBtn.setAttribute('aria-expanded', String(!globalTodosCollapsed));
     globalTodosToggleBtn.title = globalTodosCollapsed ? 'Развернуть' : 'Свернуть';
+    const title = globalTodosSection.querySelector('.section-title');
+    if (title) title.classList.toggle('collapsed', globalTodosCollapsed);
 }
 globalTodosToggleBtn.addEventListener('click', () => {
     globalTodosCollapsed = !globalTodosCollapsed;
@@ -238,6 +244,8 @@ function applyPhotosCollapsed() {
     photosToggleBtn.textContent = photosCollapsed ? '▸' : '▾';
     photosToggleBtn.setAttribute('aria-expanded', String(!photosCollapsed));
     photosToggleBtn.title = photosCollapsed ? 'Развернуть' : 'Свернуть';
+    const title = photosSection.querySelector('.section-title');
+    if (title) title.classList.toggle('collapsed', photosCollapsed);
 }
 photosToggleBtn.addEventListener('click', () => {
     photosCollapsed = !photosCollapsed;
@@ -339,6 +347,13 @@ function renderTodoList(container, counterEl, sectionEl, dateKey) {
         sectionEl.classList.toggle('hidden', todos.length === 0);
     }
 
+    // Обновляем класс "collapsed" у заголовка в зависимости от фактического состояния
+    if (sectionEl) {
+        const title = sectionEl.querySelector('.section-title');
+        const isCollapsed = sectionEl === dayTodosSection ? dayTodosCollapsed : globalTodosCollapsed;
+        if (title) title.classList.toggle('collapsed', todos.length > 0 && isCollapsed);
+    }
+
     todos.forEach(todo => {
         if (todo.done) completedCount++;
         const item = document.createElement('div');
@@ -412,6 +427,12 @@ function renderPhotos() {
         photosContent.classList.remove('hidden');
     } else {
         photosContent.classList.toggle('hidden', photosCollapsed);
+    }
+
+    // Обновляем класс у заголовка, чтобы отступы были симметричны
+    const title = photosSection.querySelector('.section-title');
+    if (title) {
+        title.classList.toggle('collapsed', photos.length > 0 && photosCollapsed);
     }
 
     photos.forEach(photoSrc => {
