@@ -48,18 +48,28 @@
       <div id="day-todos-section" class="todos-section hidden">
         <div class="section-title">
           <h4>Задачи</h4>
-          <span id="todos-counter" class="counter">0/0</span>
+          <div class="section-title-right">
+            <span id="todos-counter" class="counter">0/0</span>
+            <button id="day-todos-toggle-btn" class="toggle-btn" aria-expanded="true" title="Свернуть">▾</button>
+          </div>
         </div>
-        <div id="todo-list" class="todo-list"></div>
+        <div id="day-todos-content" class="collapsible-content">
+          <div id="todo-list" class="todo-list"></div>
+        </div>
       </div>
 
-      <div class="photos-section">
+      <div id="photos-section" class="photos-section">
         <div class="section-title">
           <h4>Фотографии</h4>
-          <label for="photo-input" class="add-photo-label">+ Добавить фото</label>
-          <input type="file" id="photo-input" accept="image/*" class="hidden">
+          <div class="section-title-right">
+            <label for="photo-input" class="add-photo-label">+ Добавить фото</label>
+            <input type="file" id="photo-input" accept="image/*" class="hidden">
+            <button id="photos-toggle-btn" class="toggle-btn hidden" aria-expanded="true" title="Свернуть">▾</button>
+          </div>
         </div>
-        <div id="photo-list" class="photo-grid"></div>
+        <div id="photos-content" class="collapsible-content">
+          <div id="photo-list" class="photo-grid"></div>
+        </div>
       </div>
     </main>
 
@@ -81,9 +91,14 @@
         <div id="global-todos-section" class="todos-section hidden">
           <div class="section-title">
             <h4>Глобальные задачи</h4>
-            <span id="global-todos-counter" class="counter">0/0</span>
+            <div class="section-title-right">
+              <span id="global-todos-counter" class="counter">0/0</span>
+              <button id="global-todos-toggle-btn" class="toggle-btn" aria-expanded="true" title="Свернуть">▾</button>
+            </div>
           </div>
-          <div id="global-todo-list" class="todo-list"></div>
+          <div id="global-todos-content" class="collapsible-content">
+            <div id="global-todo-list" class="todo-list"></div>
+          </div>
         </div>
       </div>
     </section>

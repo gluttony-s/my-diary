@@ -4,6 +4,9 @@ let diaryData = JSON.parse(localStorage.getItem('diaryData')) || {};
 
 const GLOBAL_KEY = '_global';
 const GLOBAL_COLLAPSED_KEY = 'globalCollapsed';
+const DAY_TODOS_COLLAPSED_KEY = 'dayTodosCollapsed';
+const GLOBAL_TODOS_COLLAPSED_KEY = 'globalTodosCollapsed';
+const PHOTOS_COLLAPSED_KEY = 'photosCollapsed';
 const COLLAPSED_SUBTOPICS_KEY = 'collapsedSubtopicIds';
 
 // DOM Элементы
@@ -17,6 +20,12 @@ const subtopicsContainer = document.getElementById('subtopics-container');
 const todoList = document.getElementById('todo-list');
 const todosCounter = document.getElementById('todos-counter');
 const dayTodosSection = document.getElementById('day-todos-section');
+const dayTodosContent = document.getElementById('day-todos-content');
+const dayTodosToggleBtn = document.getElementById('day-todos-toggle-btn');
+
+const photosSection = document.getElementById('photos-section');
+const photosContent = document.getElementById('photos-content');
+const photosToggleBtn = document.getElementById('photos-toggle-btn');
 const photoList = document.getElementById('photo-list');
 const photoInput = document.getElementById('photo-input');
 
@@ -24,6 +33,8 @@ const globalSubtopicsContainer = document.getElementById('global-subtopics-conta
 const globalTodoList = document.getElementById('global-todo-list');
 const globalTodosCounter = document.getElementById('global-todos-counter');
 const globalTodosSection = document.getElementById('global-todos-section');
+const globalTodosContent = document.getElementById('global-todos-content');
+const globalTodosToggleBtn = document.getElementById('global-todos-toggle-btn');
 const globalToggleBtn = document.getElementById('global-toggle-btn');
 const globalContent = document.getElementById('global-content');
 
@@ -35,7 +46,7 @@ const modalInputTitle = document.getElementById('modal-input-title');
 const modalInputBody = document.getElementById('modal-input-body');
 
 let editingSubtopicId = null;
-let modalScope = 'day'; // 'day' | 'global'
+let modalScope = 'day';
 let taskScope = 'day';
 
 // Состояние сворачивания
@@ -65,6 +76,12 @@ function saveToStorage() {
     localStorage.setItem('diaryData', JSON.stringify(diaryData));
 }
 
+function hasPendingTodos(dateKey) {
+    const day = diaryData[dateKey];
+    if (!day || !Array.isArray(day.todos)) return false;
+    return day.todos.some(t => !t.done);
+}
+
 // --- РЕНДЕР КАЛЕНДАРЯ И ДНЯ ---
 function renderWeek() {
     weekDaysContainer.innerHTML = '';
@@ -80,13 +97,20 @@ function renderWeek() {
         d.setDate(monday.getDate() + i);
         const dateKey = formatDateKey(d);
         const isSelected = formatDateKey(currentDate) === dateKey;
-        const hasData = diaryData[dateKey] &&
-            (diaryData[dateKey].mainNote ||
-             (diaryData[dateKey].subtopics && diaryData[dateKey].subtopics.length > 0) ||
-             (diaryData[dateKey].todos && diaryData[dateKey].todos.length > 0));
+        const day = diaryData[dateKey];
+        const hasData = day &&
+            (day.mainNote ||
+             (day.subtopics && day.subtopics.length > 0) ||
+             (day.todos && day.todos.length > 0));
+        const pending = hasPendingTodos(dateKey);
+
+        const classes = ['day-cell'];
+        if (isSelected) classes.push('selected');
+        if (hasData) classes.push('has-note');
+        if (pending) classes.push('has-pending');
 
         const dayEl = document.createElement('div');
-        dayEl.className = `day-cell ${isSelected ? 'selected' : ''} ${hasData ? 'has-note' : ''}`;
+        dayEl.className = classes.join(' ');
         dayEl.innerHTML = `
             <span class="day-name">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][i]}</span>
             <span class="day-num">${d.getDate()}</span>
@@ -160,23 +184,67 @@ swipeArea.addEventListener('touchend', (e) => {
     if (touchEndX > touchStartX + 50) { currentDate.setDate(currentDate.getDate() - 1); loadDay(); }
 }, false);
 
-// --- СВОРАЧИВАНИЕ ГЛОБАЛЬНОЙ СЕКЦИИ ---
-let globalCollapsed = localStorage.getItem(GLOBAL_COLLAPSED_KEY) === '1';
+// --- СВОРАЧИВАНИЕ СЕКЦИЙ ---
 
+// Глобальный блок
+let globalCollapsed = localStorage.getItem(GLOBAL_COLLAPSED_KEY) === '1';
 function applyGlobalCollapsed() {
     globalContent.classList.toggle('hidden', globalCollapsed);
     globalToggleBtn.textContent = globalCollapsed ? '▸' : '▾';
     globalToggleBtn.setAttribute('aria-expanded', String(!globalCollapsed));
     globalToggleBtn.title = globalCollapsed ? 'Развернуть' : 'Свернуть';
 }
-
 globalToggleBtn.addEventListener('click', () => {
     globalCollapsed = !globalCollapsed;
     localStorage.setItem(GLOBAL_COLLAPSED_KEY, globalCollapsed ? '1' : '0');
     applyGlobalCollapsed();
 });
-
 applyGlobalCollapsed();
+
+// Дневные задачи
+let dayTodosCollapsed = localStorage.getItem(DAY_TODOS_COLLAPSED_KEY) === '1';
+function applyDayTodosCollapsed() {
+    dayTodosContent.classList.toggle('hidden', dayTodosCollapsed);
+    dayTodosToggleBtn.textContent = dayTodosCollapsed ? '▸' : '▾';
+    dayTodosToggleBtn.setAttribute('aria-expanded', String(!dayTodosCollapsed));
+    dayTodosToggleBtn.title = dayTodosCollapsed ? 'Развернуть' : 'Свернуть';
+}
+dayTodosToggleBtn.addEventListener('click', () => {
+    dayTodosCollapsed = !dayTodosCollapsed;
+    localStorage.setItem(DAY_TODOS_COLLAPSED_KEY, dayTodosCollapsed ? '1' : '0');
+    applyDayTodosCollapsed();
+});
+applyDayTodosCollapsed();
+
+// Глобальные задачи
+let globalTodosCollapsed = localStorage.getItem(GLOBAL_TODOS_COLLAPSED_KEY) === '1';
+function applyGlobalTodosCollapsed() {
+    globalTodosContent.classList.toggle('hidden', globalTodosCollapsed);
+    globalTodosToggleBtn.textContent = globalTodosCollapsed ? '▸' : '▾';
+    globalTodosToggleBtn.setAttribute('aria-expanded', String(!globalTodosCollapsed));
+    globalTodosToggleBtn.title = globalTodosCollapsed ? 'Развернуть' : 'Свернуть';
+}
+globalTodosToggleBtn.addEventListener('click', () => {
+    globalTodosCollapsed = !globalTodosCollapsed;
+    localStorage.setItem(GLOBAL_TODOS_COLLAPSED_KEY, globalTodosCollapsed ? '1' : '0');
+    applyGlobalTodosCollapsed();
+});
+applyGlobalTodosCollapsed();
+
+// Фотографии
+let photosCollapsed = localStorage.getItem(PHOTOS_COLLAPSED_KEY) === '1';
+function applyPhotosCollapsed() {
+    photosContent.classList.toggle('hidden', photosCollapsed);
+    photosToggleBtn.textContent = photosCollapsed ? '▸' : '▾';
+    photosToggleBtn.setAttribute('aria-expanded', String(!photosCollapsed));
+    photosToggleBtn.title = photosCollapsed ? 'Развернуть' : 'Свернуть';
+}
+photosToggleBtn.addEventListener('click', () => {
+    photosCollapsed = !photosCollapsed;
+    localStorage.setItem(PHOTOS_COLLAPSED_KEY, photosCollapsed ? '1' : '0');
+    applyPhotosCollapsed();
+});
+applyPhotosCollapsed();
 
 // --- ПОДТЕМЫ ---
 function renderSubtopicList(container, dateKey) {
@@ -332,6 +400,19 @@ function renderPhotos() {
     photoList.innerHTML = '';
     const dateKey = formatDateKey(currentDate);
     const photos = diaryData[dateKey].photos || [];
+
+    // Кнопку сворачивания показываем только когда есть фото
+    if (photosToggleBtn) {
+        photosToggleBtn.classList.toggle('hidden', photos.length === 0);
+    }
+
+    // Если фото нет — контент всегда виден (сворачивать пустое нечего).
+    // Если фото есть — применяем сохранённое состояние.
+    if (photos.length === 0) {
+        photosContent.classList.remove('hidden');
+    } else {
+        photosContent.classList.toggle('hidden', photosCollapsed);
+    }
 
     photos.forEach(photoSrc => {
         const card = document.createElement('div');
