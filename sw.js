@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diary-cache-v10';
+const CACHE_NAME = 'diary-cache-v11';
 
 const urlsToCache = [
   './',

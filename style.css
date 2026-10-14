@@ -722,12 +722,35 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* --- Окно умного поиска --- */
+/* ============================================================
+   ОКНО УМНОГО ПОИСКА — правильный flex-layout со скроллом
+   ============================================================ */
+
 .sync-modal-card {
   width: min(920px, 100%);
   max-width: 920px;
   max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   overflow: hidden;
+}
+
+/* Все прямые дети по умолчанию не сжимаются */
+.sync-modal-card > * {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Скроллируемое тело — результаты или группы */
+#sync-results,
+#sync-groups {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sync-hint {
@@ -748,7 +771,9 @@ body {
   font-size: 16px;
 }
 
-.sync-modal-card > input[type="search"]:focus { border-color: var(--btn-outline-active); }
+.sync-modal-card > input[type="search"]:focus {
+  border-color: var(--btn-outline-active);
+}
 
 .sync-filters {
   display: flex;
@@ -822,11 +847,12 @@ body {
   border: 1px solid var(--card-border);
 }
 
+/* Группы (когда выбран файл) */
 .sync-groups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  min-height: 0;
+  align-content: start;
 }
 
 .sync-group {
@@ -886,28 +912,11 @@ body {
   color: var(--text-main);
 }
 
-.sync-group-results {
-  min-height: 110px;
-  max-height: 32dvh;
-}
-
-.sync-group-results .sync-result-item {
-  grid-template-columns: 24px minmax(0, 1fr);
-}
-
-.sync-group-results .sync-result-badge {
-  grid-column: 2;
-  justify-self: start;
-}
-
+/* Контейнер списка результатов (без собственного скролла — скроллит родитель) */
 .sync-results {
-  min-height: 140px;
-  max-height: 45dvh;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-right: 2px;
 }
 
 .sync-result-item {
@@ -1001,25 +1010,63 @@ body {
   border-radius: 11px;
 }
 
-.sync-actions { margin-top: 0; }
-.sync-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Кнопки всегда внизу карточки */
+.sync-actions {
+  margin-top: 0;
+}
 
+.sync-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* В групповом списке бейдж переносим под заголовок */
+.sync-group-results .sync-result-item {
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.sync-group-results .sync-result-badge {
+  grid-column: 2;
+  justify-self: start;
+}
+
+/* --- Мобильная адаптация окна умного поиска --- */
 @media (max-width: 600px) {
   .sync-modal-card {
     max-height: 100dvh;
+    height: 100dvh;
     border-radius: 0;
     border: none;
+    padding: 16px;
+    gap: 10px;
   }
+
+  .sync-groups {
+    grid-template-columns: 1fr;
+  }
+
   .sync-file-row {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .sync-file-name { width: 100%; }
-  .sync-results { max-height: 50dvh; }
-  .sync-groups { grid-template-columns: 1fr; }
-  .sync-group-results { max-height: 30dvh; }
-  .sync-result-item { grid-template-columns: 24px minmax(0, 1fr); }
-  .sync-result-badge { grid-column: 2; justify-self: start; }
-  .sync-actions { flex-direction: column-reverse; }
-  .sync-actions button { width: 100%; }
+
+  .sync-result-item {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .sync-result-badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .sync-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .sync-actions button {
+    width: 100%;
+  }
 }
